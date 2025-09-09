@@ -27,6 +27,7 @@ const MainLayout = () => {
       let name = segment
       if (segment === 'orders') name = 'Last 7 Days Orders'
       if (segment === 'generate-lead') name = 'Generate Lead'
+      if (segment === 'inventory') name = 'Inventory Management'
       if (segment === 'users') name = 'Users'
       if (segment === 'reports') name = 'Reports'
       
@@ -70,6 +71,11 @@ const MainLayout = () => {
               <Link to="/orders">
                 <Button variant="ghost" className="text-gray-600 hover:text-gray-900">
                   Orders
+                </Button>
+              </Link>
+              <Link to="/inventory">
+                <Button variant="ghost" className="text-gray-600 hover:text-gray-900">
+                  Inventory
                 </Button>
               </Link>
               <Link to="/users">
