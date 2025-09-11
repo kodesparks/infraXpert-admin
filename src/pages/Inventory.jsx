@@ -1,5 +1,6 @@
 import { useState } from 'react'
-import { Plus, Search, Edit, Trash2, X } from 'lucide-react'
+import { Plus, Search, Edit, Trash2 } from 'lucide-react'
+import InventoryModal from '@/components/InventoryModal'
 
 const Inventory = () => {
   const [filters, setFilters] = useState({
@@ -11,7 +12,6 @@ const Inventory = () => {
   const [showAddModal, setShowAddModal] = useState(false)
   const [showEditModal, setShowEditModal] = useState(false)
   const [editingItem, setEditingItem] = useState(null)
-
   const [formData, setFormData] = useState({
     id: '',
     name: '',
@@ -20,15 +20,20 @@ const Inventory = () => {
     unit: '',
     unitPrice: '',
     discount: '',
+    supplier: '',
+    status: 'In Stock',
+    subcategory: '',
+    grade: '',
+    details: '',
+    specification: '',
+    deliveryInfo: '',
     tieredPricing: {
       '0-50K': '',
       '50-100K': '',
       '100-150K': '',
       '150-200K': '',
       '>200K': ''
-    },
-    supplier: '',
-    status: 'In Stock'
+    }
   })
 
   // Sample inventory data
@@ -119,13 +124,13 @@ const Inventory = () => {
   }
 
   const handleFormChange = (field, value) => {
-    if (field.startsWith('tieredPricing.')) {
-      const tier = field.split('.')[1]
+    if (field.includes('.')) {
+      const [parent, child] = field.split('.')
       setFormData(prev => ({
         ...prev,
-        tieredPricing: {
-          ...prev.tieredPricing,
-          [tier]: value
+        [parent]: {
+          ...prev[parent],
+          [child]: value
         }
       }))
     } else {
@@ -145,44 +150,53 @@ const Inventory = () => {
       unit: '',
       unitPrice: '',
       discount: '',
+      supplier: '',
+      status: 'In Stock',
+      subcategory: '',
+      grade: '',
+      details: '',
+      specification: '',
+      deliveryInfo: '',
       tieredPricing: {
         '0-50K': '',
         '50-100K': '',
         '100-150K': '',
         '150-200K': '',
         '>200K': ''
-      },
-      supplier: '',
-      status: 'In Stock'
+      }
     })
     setShowAddModal(true)
   }
 
   const handleEditItem = (item) => {
-    setEditingItem(item)
     setFormData({
       id: item.id,
       name: item.name,
       category: item.category,
-      quantity: item.quantity.toString(),
+      quantity: item.quantity,
       unit: item.unit,
-      unitPrice: item.unitPrice.toString(),
-      discount: item.discount.toString(),
-      tieredPricing: {
-        '0-50K': item.tieredPricing['0-50K'].toString(),
-        '50-100K': item.tieredPricing['50-100K'].toString(),
-        '100-150K': item.tieredPricing['100-150K'].toString(),
-        '150-200K': item.tieredPricing['150-200K'].toString(),
-        '>200K': item.tieredPricing['>200K'].toString()
-      },
+      unitPrice: item.unitPrice,
+      discount: item.discount,
       supplier: item.supplier,
-      status: item.status
+      status: item.status,
+      subcategory: item.subcategory || '',
+      grade: item.grade || '',
+      details: item.details || '',
+      specification: item.specification || '',
+      deliveryInfo: item.deliveryInfo || '',
+      tieredPricing: {
+        '0-50K': item.tieredPricing['0-50K'],
+        '50-100K': item.tieredPricing['50-100K'],
+        '100-150K': item.tieredPricing['100-150K'],
+        '150-200K': item.tieredPricing['150-200K'],
+        '>200K': item.tieredPricing['>200K']
+      }
     })
+    setEditingItem(item)
     setShowEditModal(true)
   }
 
-  const handleSubmit = (e) => {
-    e.preventDefault()
+  const handleSubmit = (formData) => {
     // Here you would typically save to your backend
     console.log('Form submitted:', formData)
     setShowAddModal(false)
@@ -361,417 +375,16 @@ const Inventory = () => {
         </div>
       </div>
 
-      {/* Add New Item Modal */}
-      {showAddModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between p-6 border-b">
-              <h2 className="text-xl font-semibold text-gray-900">Add New Item</h2>
-              <button 
-                onClick={closeModals}
-                className="text-gray-400 hover:text-gray-600"
-              >
-                <X className="h-6 w-6" />
-              </button>
-            </div>
-            
-            <form onSubmit={handleSubmit} className="p-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Item ID / SKU</label>
-                  <input
-                    type="text"
-                    value={formData.id}
-                    onChange={(e) => handleFormChange('id', e.target.value)}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    required
-                  />
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Item Name</label>
-                  <input
-                    type="text"
-                    value={formData.name}
-                    onChange={(e) => handleFormChange('name', e.target.value)}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    required
-                  />
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Category</label>
-                  <select
-                    value={formData.category}
-                    onChange={(e) => handleFormChange('category', e.target.value)}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    required
-                  >
-                    <option value="">Select Category</option>
-                    <option value="Cement">Cement</option>
-                    <option value="Steel">Steel</option>
-                    <option value="Concrete Mix">Concrete Mix</option>
-                    <option value="Other">Other</option>
-                  </select>
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Quantity in Stock</label>
-                  <input
-                    type="number"
-                    value={formData.quantity}
-                    onChange={(e) => handleFormChange('quantity', e.target.value)}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    required
-                  />
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Unit</label>
-                  <select
-                    value={formData.unit}
-                    onChange={(e) => handleFormChange('unit', e.target.value)}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    required
-                  >
-                    <option value="">Select Unit</option>
-                    <option value="bags">Bags</option>
-                    <option value="tons">Tons</option>
-                    <option value="cubic meters">Cubic Meters</option>
-                    <option value="kg">Kilograms</option>
-                    <option value="pieces">Pieces</option>
-                  </select>
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Unit Price (₹)</label>
-                  <input
-                    type="number"
-                    value={formData.unitPrice}
-                    onChange={(e) => handleFormChange('unitPrice', e.target.value)}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    required
-                  />
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Discount (%)</label>
-                  <input
-                    type="number"
-                    step="0.1"
-                    value={formData.discount}
-                    onChange={(e) => handleFormChange('discount', e.target.value)}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  />
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Supplier</label>
-                  <input
-                    type="text"
-                    value={formData.supplier}
-                    onChange={(e) => handleFormChange('supplier', e.target.value)}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    required
-                  />
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Status</label>
-                  <select
-                    value={formData.status}
-                    onChange={(e) => handleFormChange('status', e.target.value)}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    required
-                  >
-                    <option value="In Stock">In Stock</option>
-                    <option value="Low Stock">Low Stock</option>
-                    <option value="Out of Stock">Out of Stock</option>
-                  </select>
-                </div>
-              </div>
-              
-              <div className="mt-6">
-                <h3 className="text-lg font-medium text-gray-900 mb-4">Tiered Pricing (₹)</h3>
-                <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">0-50K</label>
-                    <input
-                      type="number"
-                      value={formData.tieredPricing['0-50K']}
-                      onChange={(e) => handleFormChange('tieredPricing.0-50K', e.target.value)}
-                      className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      required
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">50-100K</label>
-                    <input
-                      type="number"
-                      value={formData.tieredPricing['50-100K']}
-                      onChange={(e) => handleFormChange('tieredPricing.50-100K', e.target.value)}
-                      className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      required
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">100-150K</label>
-                    <input
-                      type="number"
-                      value={formData.tieredPricing['100-150K']}
-                      onChange={(e) => handleFormChange('tieredPricing.100-150K', e.target.value)}
-                      className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      required
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">150-200K</label>
-                    <input
-                      type="number"
-                      value={formData.tieredPricing['150-200K']}
-                      onChange={(e) => handleFormChange('tieredPricing.150-200K', e.target.value)}
-                      className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      required
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">&gt;200K</label>
-                    <input
-                      type="number"
-                      value={formData.tieredPricing['>200K']}
-                      onChange={(e) => handleFormChange('tieredPricing.>200K', e.target.value)}
-                      className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      required
-                    />
-                  </div>
-                </div>
-              </div>
-              
-              <div className="flex justify-end gap-3 mt-6 pt-6 border-t">
-                <button
-                  type="button"
-                  onClick={closeModals}
-                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  Add Item
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* Edit Item Modal */}
-      {showEditModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between p-6 border-b">
-              <h2 className="text-xl font-semibold text-gray-900">Update Item</h2>
-              <button 
-                onClick={closeModals}
-                className="text-gray-400 hover:text-gray-600"
-              >
-                <X className="h-6 w-6" />
-              </button>
-            </div>
-            
-            <form onSubmit={handleSubmit} className="p-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Item ID / SKU</label>
-                  <input
-                    type="text"
-                    value={formData.id}
-                    onChange={(e) => handleFormChange('id', e.target.value)}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    required
-                  />
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Item Name</label>
-                  <input
-                    type="text"
-                    value={formData.name}
-                    onChange={(e) => handleFormChange('name', e.target.value)}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    required
-                  />
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Category</label>
-                  <select
-                    value={formData.category}
-                    onChange={(e) => handleFormChange('category', e.target.value)}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    required
-                  >
-                    <option value="">Select Category</option>
-                    <option value="Cement">Cement</option>
-                    <option value="Steel">Steel</option>
-                    <option value="Concrete Mix">Concrete Mix</option>
-                    <option value="Other">Other</option>
-                  </select>
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Quantity in Stock</label>
-                  <input
-                    type="number"
-                    value={formData.quantity}
-                    onChange={(e) => handleFormChange('quantity', e.target.value)}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    required
-                  />
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Unit</label>
-                  <select
-                    value={formData.unit}
-                    onChange={(e) => handleFormChange('unit', e.target.value)}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    required
-                  >
-                    <option value="">Select Unit</option>
-                    <option value="bags">Bags</option>
-                    <option value="tons">Tons</option>
-                    <option value="cubic meters">Cubic Meters</option>
-                    <option value="kg">Kilograms</option>
-                    <option value="pieces">Pieces</option>
-                  </select>
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Unit Price (₹)</label>
-                  <input
-                    type="number"
-                    value={formData.unitPrice}
-                    onChange={(e) => handleFormChange('unitPrice', e.target.value)}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    required
-                  />
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Discount (%)</label>
-                  <input
-                    type="number"
-                    step="0.1"
-                    value={formData.discount}
-                    onChange={(e) => handleFormChange('discount', e.target.value)}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  />
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Supplier</label>
-                  <input
-                    type="text"
-                    value={formData.supplier}
-                    onChange={(e) => handleFormChange('supplier', e.target.value)}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    required
-                  />
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Status</label>
-                  <select
-                    value={formData.status}
-                    onChange={(e) => handleFormChange('status', e.target.value)}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    required
-                  >
-                    <option value="In Stock">In Stock</option>
-                    <option value="Low Stock">Low Stock</option>
-                    <option value="Out of Stock">Out of Stock</option>
-                  </select>
-                </div>
-              </div>
-              
-              <div className="mt-6">
-                <h3 className="text-lg font-medium text-gray-900 mb-4">Tiered Pricing (₹)</h3>
-                <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">0-50K</label>
-                    <input
-                      type="number"
-                      value={formData.tieredPricing['0-50K']}
-                      onChange={(e) => handleFormChange('tieredPricing.0-50K', e.target.value)}
-                      className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      required
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">50-100K</label>
-                    <input
-                      type="number"
-                      value={formData.tieredPricing['50-100K']}
-                      onChange={(e) => handleFormChange('tieredPricing.50-100K', e.target.value)}
-                      className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      required
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">100-150K</label>
-                    <input
-                      type="number"
-                      value={formData.tieredPricing['100-150K']}
-                      onChange={(e) => handleFormChange('tieredPricing.100-150K', e.target.value)}
-                      className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      required
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">150-200K</label>
-                    <input
-                      type="number"
-                      value={formData.tieredPricing['150-200K']}
-                      onChange={(e) => handleFormChange('tieredPricing.150-200K', e.target.value)}
-                      className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      required
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">&gt;200K</label>
-                    <input
-                      type="number"
-                      value={formData.tieredPricing['>200K']}
-                      onChange={(e) => handleFormChange('tieredPricing.>200K', e.target.value)}
-                      className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      required
-                    />
-                  </div>
-                </div>
-              </div>
-              
-              <div className="flex justify-end gap-3 mt-6 pt-6 border-t">
-                <button
-                  type="button"
-                  onClick={closeModals}
-                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  Update Item
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+      {/* Inventory Modal */}
+      <InventoryModal
+        isOpen={showAddModal || showEditModal}
+        onClose={closeModals}
+        onSubmit={handleSubmit}
+        formData={formData}
+        onFormChange={handleFormChange}
+        isEditMode={showEditModal}
+        editingItem={editingItem}
+      />
     </div>
   )
 }

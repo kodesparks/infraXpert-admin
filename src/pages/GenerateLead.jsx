@@ -22,6 +22,19 @@ const GenerateLead = () => {
 
   const [charCount, setCharCount] = useState(0)
 
+  const getQuantityPlaceholder = (category) => {
+    switch (category) {
+      case 'cement':
+        return 'e.g., 500 bags'
+      case 'steel':
+        return 'e.g., 2 tons'
+      case 'concrete_mix':
+        return 'e.g., 10 cubic meters'
+      default:
+        return 'e.g., 500 bags'
+    }
+  }
+
   const handleInputChange = (field, value) => {
     setFormData(prev => ({
       ...prev,
@@ -62,6 +75,7 @@ const GenerateLead = () => {
                   <SelectContent>
                     <SelectItem value="cement">Cement</SelectItem>
                     <SelectItem value="steel">Steel</SelectItem>
+                    <SelectItem value="concrete_mix">Concrete Mix</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -73,7 +87,7 @@ const GenerateLead = () => {
                 </Label>
                 <Input
                   id="quantity"
-                  placeholder="e.g., 500 bags, 2 tons"
+                  placeholder={getQuantityPlaceholder(formData.category)}
                   value={formData.quantity}
                   onChange={(e) => handleInputChange('quantity', e.target.value)}
                   required

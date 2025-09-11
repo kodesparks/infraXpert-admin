@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Plus } from 'lucide-react'
+import OrderDetailsModal from '@/components/OrderDetailsModal'
 
 const Orders = () => {
   const [filters, setFilters] = useState({
@@ -16,13 +17,19 @@ const Orders = () => {
     status: 'all'
   })
 
+  const [showOrderDetails, setShowOrderDetails] = useState(false)
+  const [selectedOrder, setSelectedOrder] = useState(null)
+
   // Sample data - in real app, this would come from API
   const orders = [
     {
       id: 'LD-001',
       invoice: 'INV-001234',
       subInvoice: 'SUB-001',
+      brand: 'Ultratech',
       category: 'cement',
+      subCategory: 'Portland Cement',
+      grade: 'OPC 53',
       quantity: '500 bags',
       price: '₹25,000',
       status: 'delivered',
@@ -34,7 +41,10 @@ const Orders = () => {
       id: 'LD-002',
       invoice: 'INV-001235',
       subInvoice: 'SUB-002',
+      brand: 'Tata Steel',
       category: 'steel',
+      subCategory: 'TMT Bars',
+      grade: 'Fe 500',
       quantity: '2 tons',
       price: '₹1,20,000',
       status: 'truck_load',
@@ -46,7 +56,10 @@ const Orders = () => {
       id: 'LD-003',
       invoice: 'INV-001236',
       subInvoice: 'SUB-003',
+      brand: 'Ambuja',
       category: 'cement',
+      subCategory: 'Portland Cement',
+      grade: 'OPC 43',
       quantity: '300 bags',
       price: '₹15,000',
       status: 'confirmed',
@@ -58,7 +71,10 @@ const Orders = () => {
       id: 'LD-004',
       invoice: 'INV-001237',
       subInvoice: 'SUB-004',
+      brand: 'JSW Steel',
       category: 'steel',
+      subCategory: 'TMT Bars',
+      grade: 'Fe 550',
       quantity: '1.5 tons',
       price: '₹90,000',
       status: 'delivered',
@@ -70,13 +86,46 @@ const Orders = () => {
       id: 'LD-005',
       invoice: 'INV-001238',
       subInvoice: 'SUB-005',
+      brand: 'Shree Cement',
       category: 'cement',
+      subCategory: 'Portland Cement',
+      grade: 'OPC 53',
       quantity: '750 bags',
       price: '₹37,500',
       status: 'truck_load',
       customerName: 'JKL Constructions',
       orderDate: '2024-01-19',
       deliveryDate: '2024-01-26'
+    },
+    {
+      id: 'LD-006',
+      invoice: 'INV-001239',
+      subInvoice: 'SUB-006',
+      brand: 'ACC Cement',
+      category: 'cement',
+      subCategory: 'Portland Cement',
+      grade: 'OPC 43',
+      quantity: '400 bags',
+      price: '₹20,000',
+      status: 'intransport',
+      customerName: 'MNO Builders',
+      orderDate: '2024-01-20',
+      deliveryDate: '2024-01-27'
+    },
+    {
+      id: 'LD-007',
+      invoice: 'INV-001240',
+      subInvoice: 'SUB-007',
+      brand: 'Birla Cement',
+      category: 'cement',
+      subCategory: 'Portland Cement',
+      grade: 'OPC 53',
+      quantity: '600 bags',
+      price: '₹30,000',
+      status: 'confirmed',
+      customerName: 'PQR Construction',
+      orderDate: new Date().toISOString().split('T')[0], // Today's date
+      deliveryDate: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString().split('T')[0] // 3 days from now
     }
   ]
 
@@ -87,11 +136,22 @@ const Orders = () => {
     }))
   }
 
+  const handleShowOrderDetails = (order) => {
+    setSelectedOrder(order)
+    setShowOrderDetails(true)
+  }
+
+  const handleCloseOrderDetails = () => {
+    setShowOrderDetails(false)
+    setSelectedOrder(null)
+  }
+
   const getStatusBadge = (status) => {
     const statusConfig = {
       delivered: { variant: 'secondary', className: 'bg-green-100 text-green-800' },
       truck_load: { variant: 'secondary', className: 'bg-blue-100 text-blue-800' },
-      confirmed: { variant: 'secondary', className: 'bg-orange-100 text-orange-800' }
+      confirmed: { variant: 'secondary', className: 'bg-orange-100 text-orange-800' },
+      intransport: { variant: 'secondary', className: 'bg-yellow-100 text-yellow-800' }
     }
     
     const config = statusConfig[status] || { variant: 'secondary', className: 'bg-gray-100 text-gray-800' }
@@ -107,6 +167,30 @@ const Orders = () => {
     return (
       <Badge variant="secondary" className="bg-blue-100 text-blue-800 capitalize">
         {category}
+      </Badge>
+    )
+  }
+
+  const getBrandBadge = (brand) => {
+    return (
+      <Badge variant="secondary" className="bg-purple-100 text-purple-800">
+        {brand}
+      </Badge>
+    )
+  }
+
+  const getSubCategoryBadge = (subCategory) => {
+    return (
+      <Badge variant="secondary" className="bg-indigo-100 text-indigo-800">
+        {subCategory}
+      </Badge>
+    )
+  }
+
+  const getGradeBadge = (grade) => {
+    return (
+      <Badge variant="secondary" className="bg-teal-100 text-teal-800">
+        {grade}
       </Badge>
     )
   }
@@ -173,6 +257,7 @@ const Orders = () => {
                     <SelectItem value="all">All Status</SelectItem>
                     <SelectItem value="confirmed">Confirmed</SelectItem>
                     <SelectItem value="truck_load">Truck Load</SelectItem>
+                    <SelectItem value="intransport">In Transport</SelectItem>
                     <SelectItem value="delivered">Delivered</SelectItem>
                   </SelectContent>
                 </Select>
@@ -195,7 +280,16 @@ const Orders = () => {
                       Sub Invoice
                     </TableHead>
                     <TableHead className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Brand
+                    </TableHead>
+                    <TableHead className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Category
+                    </TableHead>
+                    <TableHead className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Sub Category
+                    </TableHead>
+                    <TableHead className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Grade
                     </TableHead>
                     <TableHead className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Quantity
@@ -224,7 +318,16 @@ const Orders = () => {
                         {order.subInvoice}
                       </TableCell>
                       <TableCell className="px-6 py-4 whitespace-nowrap">
+                        {getBrandBadge(order.brand)}
+                      </TableCell>
+                      <TableCell className="px-6 py-4 whitespace-nowrap">
                         {getCategoryBadge(order.category)}
+                      </TableCell>
+                      <TableCell className="px-6 py-4 whitespace-nowrap">
+                        {getSubCategoryBadge(order.subCategory)}
+                      </TableCell>
+                      <TableCell className="px-6 py-4 whitespace-nowrap">
+                        {getGradeBadge(order.grade)}
                       </TableCell>
                       <TableCell className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
                         {order.quantity}
@@ -236,7 +339,12 @@ const Orders = () => {
                         {getStatusBadge(order.status)}
                       </TableCell>
                       <TableCell className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                        <Button variant="ghost" size="sm" className="text-blue-600 hover:text-blue-900">
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          className="text-blue-600 hover:text-blue-900"
+                          onClick={() => handleShowOrderDetails(order)}
+                        >
                           More Details
                         </Button>
                       </TableCell>
@@ -254,6 +362,13 @@ const Orders = () => {
           </CardContent>
         </Card>
       </div>
+
+      {/* Order Details Modal */}
+      <OrderDetailsModal
+        isOpen={showOrderDetails}
+        onClose={handleCloseOrderDetails}
+        order={selectedOrder}
+      />
     </div>
   )
 }
