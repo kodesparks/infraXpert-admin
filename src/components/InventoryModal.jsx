@@ -23,6 +23,7 @@ const InventoryModal = ({ isOpen, onClose, onSubmit, editingItem, isEditMode = f
     details: '',
     specification: '',
     deliveryInfo: '',
+    image: '',
     status: 'In Stock'
   })
 
@@ -49,6 +50,7 @@ const InventoryModal = ({ isOpen, onClose, onSubmit, editingItem, isEditMode = f
         details: editingItem.details || '',
         specification: editingItem.specification || '',
         deliveryInfo: editingItem.deliveryInfo || '',
+        image: editingItem.image || '',
         status: editingItem.status
       })
     } else {
@@ -74,6 +76,7 @@ const InventoryModal = ({ isOpen, onClose, onSubmit, editingItem, isEditMode = f
         details: '',
         specification: '',
         deliveryInfo: '',
+        image: '',
         status: 'In Stock'
       })
     }
@@ -155,6 +158,29 @@ const InventoryModal = ({ isOpen, onClose, onSubmit, editingItem, isEditMode = f
                 className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 required
               />
+            </div>
+            
+            <div className="md:col-span-2">
+              <label className="block text-sm font-medium text-gray-700 mb-2">Product Image URL</label>
+              <input
+                type="url"
+                value={formData.image}
+                onChange={(e) => handleFormChange('image', e.target.value)}
+                placeholder="https://example.com/image.jpg"
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+              {formData.image && (
+                <div className="mt-2">
+                  <img 
+                    src={formData.image} 
+                    alt="Product preview"
+                    className="h-20 w-20 rounded-lg object-cover border border-gray-200"
+                    onError={(e) => {
+                      e.target.style.display = 'none'
+                    }}
+                  />
+                </div>
+              )}
             </div>
             
             <div>

@@ -33,6 +33,7 @@ const Orders = () => {
       quantity: '500 bags',
       price: '₹25,000',
       status: 'delivered',
+      paymentStatus: 'paid',
       customerName: 'ABC Construction',
       orderDate: '2024-01-15',
       deliveryDate: '2024-01-20'
@@ -48,6 +49,7 @@ const Orders = () => {
       quantity: '2 tons',
       price: '₹1,20,000',
       status: 'truck_load',
+      paymentStatus: 'partial',
       customerName: 'XYZ Builders',
       orderDate: '2024-01-16',
       deliveryDate: '2024-01-22'
@@ -63,6 +65,7 @@ const Orders = () => {
       quantity: '300 bags',
       price: '₹15,000',
       status: 'confirmed',
+      paymentStatus: 'pending',
       customerName: 'DEF Infrastructure',
       orderDate: '2024-01-17',
       deliveryDate: '2024-01-25'
@@ -78,6 +81,7 @@ const Orders = () => {
       quantity: '1.5 tons',
       price: '₹90,000',
       status: 'delivered',
+      paymentStatus: 'paid',
       customerName: 'GHI Developers',
       orderDate: '2024-01-18',
       deliveryDate: '2024-01-23'
@@ -93,6 +97,7 @@ const Orders = () => {
       quantity: '750 bags',
       price: '₹37,500',
       status: 'truck_load',
+      paymentStatus: 'overdue',
       customerName: 'JKL Constructions',
       orderDate: '2024-01-19',
       deliveryDate: '2024-01-26'
@@ -108,6 +113,7 @@ const Orders = () => {
       quantity: '400 bags',
       price: '₹20,000',
       status: 'intransport',
+      paymentStatus: 'pending',
       customerName: 'MNO Builders',
       orderDate: '2024-01-20',
       deliveryDate: '2024-01-27'
@@ -123,6 +129,7 @@ const Orders = () => {
       quantity: '600 bags',
       price: '₹30,000',
       status: 'confirmed',
+      paymentStatus: 'paid',
       customerName: 'PQR Construction',
       orderDate: new Date().toISOString().split('T')[0], // Today's date
       deliveryDate: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString().split('T')[0] // 3 days from now
@@ -159,6 +166,23 @@ const Orders = () => {
     return (
       <Badge variant={config.variant} className={config.className}>
         {status.replace('_', ' ')}
+      </Badge>
+    )
+  }
+
+  const getPaymentStatusBadge = (paymentStatus) => {
+    const paymentStatusConfig = {
+      paid: { variant: 'secondary', className: 'bg-green-100 text-green-800' },
+      pending: { variant: 'secondary', className: 'bg-yellow-100 text-yellow-800' },
+      partial: { variant: 'secondary', className: 'bg-blue-100 text-blue-800' },
+      overdue: { variant: 'secondary', className: 'bg-red-100 text-red-800' }
+    }
+    
+    const config = paymentStatusConfig[paymentStatus] || { variant: 'secondary', className: 'bg-gray-100 text-gray-800' }
+    
+    return (
+      <Badge variant={config.variant} className={config.className}>
+        {paymentStatus.charAt(0).toUpperCase() + paymentStatus.slice(1)}
       </Badge>
     )
   }
@@ -301,6 +325,9 @@ const Orders = () => {
                       Status
                     </TableHead>
                     <TableHead className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Payment Status
+                    </TableHead>
+                    <TableHead className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Actions
                     </TableHead>
                   </TableRow>
@@ -337,6 +364,9 @@ const Orders = () => {
                       </TableCell>
                       <TableCell className="px-6 py-4 whitespace-nowrap">
                         {getStatusBadge(order.status)}
+                      </TableCell>
+                      <TableCell className="px-6 py-4 whitespace-nowrap">
+                        {getPaymentStatusBadge(order.paymentStatus)}
                       </TableCell>
                       <TableCell className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                         <Button 

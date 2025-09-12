@@ -16,8 +16,11 @@ const GenerateLead = () => {
     customerContact: '',
     preferredDeliveryDate: '',
     deliveryAddress: '',
+    deliveryPincode: '',
+    receiverPhoneNumber: '',
     paymentType: 'RTGS',
-    notes: ''
+    notes: '',
+    remarks: ''
   })
 
   const [charCount, setCharCount] = useState(0)
@@ -166,6 +169,38 @@ const GenerateLead = () => {
                 />
               </div>
 
+              {/* Delivery Pincode */}
+              <div>
+                <Label htmlFor="deliveryPincode" className="block text-sm font-medium text-gray-700 mb-2">
+                  Delivery Pincode
+                </Label>
+                <Input
+                  id="deliveryPincode"
+                  type="text"
+                  placeholder="e.g., 110001"
+                  value={formData.deliveryPincode}
+                  onChange={(e) => handleInputChange('deliveryPincode', e.target.value)}
+                  maxLength={6}
+                  pattern="[0-9]{6}"
+                  required
+                />
+              </div>
+
+              {/* Receiver Phone Number */}
+              <div>
+                <Label htmlFor="receiverPhoneNumber" className="block text-sm font-medium text-gray-700 mb-2">
+                  Receiver Phone Number
+                </Label>
+                <Input
+                  id="receiverPhoneNumber"
+                  type="tel"
+                  placeholder="+91 9876543210"
+                  value={formData.receiverPhoneNumber}
+                  onChange={(e) => handleInputChange('receiverPhoneNumber', e.target.value)}
+                  required
+                />
+              </div>
+
               {/* Payment Type */}
               <div>
                 <Label htmlFor="paymentType" className="block text-sm font-medium text-gray-700 mb-2">
@@ -199,6 +234,21 @@ const GenerateLead = () => {
                   onChange={(e) => handleInputChange('notes', e.target.value)}
                 />
                 <p className="text-xs text-gray-500 mt-1">{charCount}/500 characters</p>
+              </div>
+
+              {/* Remarks */}
+              <div className="md:col-span-2">
+                <Label htmlFor="remarks" className="block text-sm font-medium text-gray-700 mb-2">
+                  Remarks
+                </Label>
+                <Textarea
+                  id="remarks"
+                  placeholder="Add any remarks or special instructions that can be edited at any time"
+                  rows={3}
+                  value={formData.remarks}
+                  onChange={(e) => handleInputChange('remarks', e.target.value)}
+                />
+                <p className="text-xs text-gray-500 mt-1">Editable field for ongoing updates and remarks</p>
               </div>
             </div>
 

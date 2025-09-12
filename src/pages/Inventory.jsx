@@ -27,6 +27,7 @@ const Inventory = () => {
     details: '',
     specification: '',
     deliveryInfo: '',
+    image: '',
     tieredPricing: {
       '0-50K': '',
       '50-100K': '',
@@ -46,6 +47,7 @@ const Inventory = () => {
       unit: 'bags',
       unitPrice: 450,
       discount: 1,
+      image: 'https://images.unsplash.com/photo-1581094794329-c8112a89af12?w=100&h=100&fit=crop&crop=center',
       tieredPricing: {
         '0-50K': 3,
         '50-100K': 4,
@@ -65,6 +67,7 @@ const Inventory = () => {
       unit: 'tons',
       unitPrice: 65000,
       discount: 2,
+      image: 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=100&h=100&fit=crop&crop=center',
       tieredPricing: {
         '0-50K': 62000,
         '50-100K': 61000,
@@ -84,6 +87,7 @@ const Inventory = () => {
       unit: 'cubic meters',
       unitPrice: 4500,
       discount: 0.5,
+      image: 'https://images.unsplash.com/photo-1541888946425-d81bb19240f5?w=100&h=100&fit=crop&crop=center',
       tieredPricing: {
         '0-50K': 4500,
         '50-100K': 4400,
@@ -103,6 +107,7 @@ const Inventory = () => {
       unit: 'tons',
       unitPrice: 1200,
       discount: 0,
+      image: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=100&h=100&fit=crop&crop=center',
       tieredPricing: {
         '0-50K': 1200,
         '50-100K': 1180,
@@ -157,6 +162,7 @@ const Inventory = () => {
       details: '',
       specification: '',
       deliveryInfo: '',
+      image: '',
       tieredPricing: {
         '0-50K': '',
         '50-100K': '',
@@ -305,6 +311,7 @@ const Inventory = () => {
             <table className="w-full">
               <thead className="bg-gray-50">
                 <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Image</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Item ID / SKU</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Item Name</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Category</th>
@@ -325,6 +332,18 @@ const Inventory = () => {
               <tbody className="bg-white divide-y divide-gray-200">
                 {filteredItems.map((item) => (
                   <tr key={item.id} className="hover:bg-gray-50">
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex items-center">
+                        <img 
+                          src={item.image} 
+                          alt={item.name}
+                          className="h-12 w-12 rounded-lg object-cover border border-gray-200"
+                          onError={(e) => {
+                            e.target.src = 'https://via.placeholder.com/100x100?text=No+Image'
+                          }}
+                        />
+                      </div>
+                    </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-mono text-gray-900">{item.id}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{item.name}</td>
                     <td className="px-6 py-4 whitespace-nowrap">
