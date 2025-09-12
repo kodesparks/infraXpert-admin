@@ -11,7 +11,8 @@ const InventoryModal = ({ isOpen, onClose, onSubmit, editingItem, isEditMode = f
     quantity: '',
     unit: '',
     unitPrice: '',
-    discount: '',
+    discountCode: '',
+    discountPercentage: '',
     tieredPricing: {
       '0-50K': '',
       '50-100K': '',
@@ -38,7 +39,8 @@ const InventoryModal = ({ isOpen, onClose, onSubmit, editingItem, isEditMode = f
         quantity: editingItem.quantity.toString(),
         unit: editingItem.unit,
         unitPrice: editingItem.unitPrice.toString(),
-        discount: editingItem.discount.toString(),
+        discountCode: editingItem.discountCode || '',
+        discountPercentage: editingItem.discountPercentage || '',
         tieredPricing: {
           '0-50K': editingItem.tieredPricing['0-50K'].toString(),
           '50-100K': editingItem.tieredPricing['50-100K'].toString(),
@@ -64,7 +66,8 @@ const InventoryModal = ({ isOpen, onClose, onSubmit, editingItem, isEditMode = f
         quantity: '',
         unit: '',
         unitPrice: '',
-        discount: '',
+        discountCode: '',
+        discountPercentage: '',
         tieredPricing: {
           '0-50K': '',
           '50-100K': '',
@@ -262,12 +265,26 @@ const InventoryModal = ({ isOpen, onClose, onSubmit, editingItem, isEditMode = f
             </div>
             
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Discount (%)</label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Discount Code</label>
+              <input
+                type="text"
+                value={formData.discountCode}
+                onChange={(e) => handleFormChange('discountCode', e.target.value)}
+                placeholder="e.g., SAVE10, BULK20"
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Discount Percentage</label>
               <input
                 type="number"
                 step="0.1"
-                value={formData.discount}
-                onChange={(e) => handleFormChange('discount', e.target.value)}
+                min="0"
+                max="100"
+                value={formData.discountPercentage}
+                onChange={(e) => handleFormChange('discountPercentage', e.target.value)}
+                placeholder="e.g., 10.5"
                 className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
             </div>

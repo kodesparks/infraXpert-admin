@@ -11,6 +11,7 @@ const GenerateLead = () => {
   const [formData, setFormData] = useState({
     category: 'cement',
     quantity: '',
+    unit: '',
     estimatedPrice: '',
     customerName: '',
     customerContact: '',
@@ -95,6 +96,25 @@ const GenerateLead = () => {
                   onChange={(e) => handleInputChange('quantity', e.target.value)}
                   required
                 />
+              </div>
+
+              {/* Unit */}
+              <div>
+                <Label htmlFor="unit" className="block text-sm font-medium text-gray-700 mb-2">
+                  Unit
+                </Label>
+                <Select value={formData.unit} onValueChange={(value) => handleInputChange('unit', value)}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Select unit" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="bags">Bags</SelectItem>
+                    <SelectItem value="tons">Tons</SelectItem>
+                    <SelectItem value="cubic meters">Cubic Meters</SelectItem>
+                    <SelectItem value="kg">Kilograms</SelectItem>
+                    <SelectItem value="pieces">Pieces</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
 
               {/* Estimated Price */}

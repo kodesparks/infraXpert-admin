@@ -19,7 +19,8 @@ const Inventory = () => {
     quantity: '',
     unit: '',
     unitPrice: '',
-    discount: '',
+    discountCode: '',
+    discountPercentage: '',
     supplier: '',
     status: 'In Stock',
     subcategory: '',
@@ -46,7 +47,8 @@ const Inventory = () => {
       quantity: 150,
       unit: 'bags',
       unitPrice: 450,
-      discount: 1,
+      discountCode: 'CEMENT10',
+      discountPercentage: 10,
       image: 'https://images.unsplash.com/photo-1581094794329-c8112a89af12?w=100&h=100&fit=crop&crop=center',
       tieredPricing: {
         '0-50K': 3,
@@ -66,7 +68,8 @@ const Inventory = () => {
       quantity: 5,
       unit: 'tons',
       unitPrice: 65000,
-      discount: 2,
+      discountCode: 'STEEL15',
+      discountPercentage: 15,
       image: 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=100&h=100&fit=crop&crop=center',
       tieredPricing: {
         '0-50K': 62000,
@@ -86,7 +89,8 @@ const Inventory = () => {
       quantity: 0,
       unit: 'cubic meters',
       unitPrice: 4500,
-      discount: 0.5,
+      discountCode: 'CONCRETE5',
+      discountPercentage: 5,
       image: 'https://images.unsplash.com/photo-1541888946425-d81bb19240f5?w=100&h=100&fit=crop&crop=center',
       tieredPricing: {
         '0-50K': 4500,
@@ -106,7 +110,8 @@ const Inventory = () => {
       quantity: 25,
       unit: 'tons',
       unitPrice: 1200,
-      discount: 0,
+      discountCode: '',
+      discountPercentage: 0,
       image: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=100&h=100&fit=crop&crop=center',
       tieredPricing: {
         '0-50K': 1200,
@@ -154,7 +159,8 @@ const Inventory = () => {
       quantity: '',
       unit: '',
       unitPrice: '',
-      discount: '',
+      discountCode: '',
+      discountPercentage: '',
       supplier: '',
       status: 'In Stock',
       subcategory: '',
@@ -182,7 +188,8 @@ const Inventory = () => {
       quantity: item.quantity,
       unit: item.unit,
       unitPrice: item.unitPrice,
-      discount: item.discount,
+      discountCode: item.discountCode || '',
+      discountPercentage: item.discountPercentage || '',
       supplier: item.supplier,
       status: item.status,
       subcategory: item.subcategory || '',
@@ -317,7 +324,7 @@ const Inventory = () => {
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Category</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Quantity in Stock</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Unit Price (₹)</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Discount (%)</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Discount %</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">0-50K</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">50-100K</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">100-150K</th>
@@ -356,7 +363,7 @@ const Inventory = () => {
                       <span className="text-gray-500 ml-1">{item.unit}</span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">₹{item.unitPrice.toLocaleString()}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{item.discount}%</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{item.discountPercentage}%</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">₹{item.tieredPricing['0-50K'].toLocaleString()}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">₹{item.tieredPricing['50-100K'].toLocaleString()}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">₹{item.tieredPricing['100-150K'].toLocaleString()}</td>

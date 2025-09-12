@@ -7,6 +7,7 @@ const OrderDetailsModal = ({ isOpen, onClose, order }) => {
     deliveryAddress: "123 Construction Site, Mumbai",
     expectedDeliveryDate: "",
     status: "",
+    remarks: "",
   });
 
   useEffect(() => {
@@ -15,7 +16,9 @@ const OrderDetailsModal = ({ isOpen, onClose, order }) => {
         deliveryAddress: "123 Construction Site, Mumbai",
         expectedDeliveryDate: order.deliveryDate,
         status: order.status,
+        remarks: "",
       });
+      setIsEditMode(false); // Reset edit mode when order changes
     }
   }, [order]);
 
@@ -27,7 +30,7 @@ const OrderDetailsModal = ({ isOpen, onClose, order }) => {
     const currentDate = new Date();
     const diffInHours = (currentDate - orderDate) / (1000 * 60 * 60);
     return diffInHours <= 48;
-  };
+  };                              
 
   const canEdit = isWithin48Hours();
 
@@ -48,6 +51,7 @@ const OrderDetailsModal = ({ isOpen, onClose, order }) => {
       deliveryAddress: "123 Construction Site, Mumbai",
       expectedDeliveryDate: order.deliveryDate,
       status: order.status,
+      remarks: "",
     });
     setIsEditMode(false);
   };
@@ -194,22 +198,18 @@ const OrderDetailsModal = ({ isOpen, onClose, order }) => {
                   </div>
                   <div className="flex justify-between">
                     <span className="text-sm text-gray-600">Status:</span>
-                    {isEditMode && canEdit ? (
-                      <select
-                        value={editableData.status}
-                        onChange={(e) =>
-                          handleInputChange("status", e.target.value)
-                        }
-                        className="border border-gray-300 rounded-lg px-3 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      >
-                        <option value="confirmed">Confirmed</option>
-                        <option value="truck_load">Truck Load</option>
-                        <option value="intransport">In Transport</option>
-                        <option value="delivered">Delivered</option>
-                      </select>
-                    ) : (
-                      getStatusBadge(editableData.status)
-                    )}
+                    <select
+                      value={editableData.status}
+                      onChange={(e) =>
+                        handleInputChange("status", e.target.value)
+                      }
+                      className="border border-gray-300 rounded-lg px-3 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    >
+                      <option value="confirmed">Confirmed</option>
+                      <option value="truck_load">Truck Load</option>
+                      <option value="intransport">In Transport</option>
+                      <option value="delivered">Delivered</option>
+                    </select>
                   </div>
                 </div>
               </div>
@@ -348,51 +348,83 @@ const OrderDetailsModal = ({ isOpen, onClose, order }) => {
                   </div>
                 </div>
               </div>
+
+              <div>
+                <h4 className="text-lg font-medium text-gray-900 mb-4">
+                  Remarks
+                </h4>
+                <div>
+                  <textarea
+                    value={editableData.remarks}
+                    onChange={(e) =>
+                      handleInputChange("remarks", e.target.value)
+                    }
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    rows="4"
+                    placeholder="Enter any remarks or notes about this order..."
+                  />
+                  <div className="mt-2 flex justify-end">
+                    <button
+                      onClick={() => {
+                        console.log("Saving remarks:", editableData.remarks);
+                        // Here you would typically save to your backend
+                        alert("Remarks saved successfully!");
+                      }}
+                      className="px-3 py-1 bg-green-600 text-white text-sm rounded-md hover:bg-green-700 transition-colors"
+                    >
+                      Save Remarks
+                    </button>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
 
-          <div className="mt-6 pt-6 border-t flex justify-end space-x-3">
-            {isEditMode ? (
-              <>
-                <button
-                  onClick={handleCancelEdit}
-                  className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 whitespace-nowrap cursor-pointer"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleSaveChanges}
-                  className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 whitespace-nowrap cursor-pointer"
-                >
-                  Save Changes
-                </button>
-              </>
-            ) : (
-              <>
-                <button
-                  onClick={onClose}
-                  className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 whitespace-nowrap cursor-pointer"
-                >
-                  Close
-                </button>
-                {canEdit ? (
+          <div className="mt-6 pt-6 border-t flex justify-between items-center">
+            <button
+              onClick={onClose}
+              className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 whitespace-nowrap cursor-pointer"
+            >
+              Cancel
+            </button>
+            
+            <div className="flex space-x-3">
+              {isEditMode ? (
+                <>
                   <button
-                    onClick={handleEditMode}
-                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 whitespace-nowrap cursor-pointer"
+                    onClick={handleCancelEdit}
+                    className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 whitespace-nowrap cursor-pointer"
                   >
-                    Update Order
+                    Cancel Edit
                   </button>
-                ) : (
                   <button
-                    disabled
-                    className="px-4 py-2 bg-gray-400 text-white rounded-lg cursor-not-allowed whitespace-nowrap"
-                    title="Order is older than 48 hours and cannot be updated"
+                    onClick={handleSaveChanges}
+                    className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 whitespace-nowrap cursor-pointer"
                   >
-                    Update Order
+                    Save Changes
                   </button>
-                )}
-              </>
-            )}
+                </>
+              ) : (
+                <>
+                  {canEdit ? (
+                    <button
+                      onClick={handleEditMode}
+                      className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 whitespace-nowrap cursor-pointer"
+                    >
+                      Update Order
+                    </button>
+                  ) : (
+                    <button
+                      disabled
+                      className="px-4 py-2 bg-gray-400 text-white rounded-lg cursor-not-allowed whitespace-nowrap"
+                      title="Order is older than 48 hours and cannot be updated"
+                    >
+                      Update Order
+                    </button>
+                  )}
+                </>
+              )}
+            </div>
           </div>
         </div>
       </div>
