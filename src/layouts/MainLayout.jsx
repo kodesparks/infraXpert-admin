@@ -1,10 +1,12 @@
 import { Outlet, Link, useLocation } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
-import { User, ChevronRight } from 'lucide-react'
+import { User, ChevronRight, LogOut } from 'lucide-react'
+import { useAuth } from '@/contexts/AuthContext'
 
-const MainLayout = () => {
+const MainLayout = ({ children }) => {
   const location = useLocation()
+  const { user, logout } = useAuth()
   
   // Generate breadcrumb from pathname
   const generateBreadcrumb = () => {
@@ -88,11 +90,26 @@ const MainLayout = () => {
                   Reports
                 </Button>
               </Link>
-              <Avatar className="w-8 h-8">
-                <AvatarFallback>
-                  <User className="w-4 h-4" />
-                </AvatarFallback>
-              </Avatar>
+              <div className="flex items-center gap-3">
+                <div className="text-right">
+                  <p className="text-sm font-medium text-gray-900">{user?.name || 'Admin'}</p>
+                  <p className="text-xs text-gray-500">{user?.role || 'admin'}</p>
+                </div>
+                <Avatar className="w-8 h-8">
+                  <AvatarFallback>
+                    {user?.name ? user.name.charAt(0).toUpperCase() : <User className="w-4 h-4" />}
+                  </AvatarFallback>
+                </Avatar>
+                <Button 
+                  variant="ghost" 
+                  size="sm"
+                  onClick={logout}
+                  className="text-gray-600 hover:text-red-600"
+                  title="Logout"
+                >
+                  <LogOut className="w-4 h-4" />
+                </Button>
+              </div>
             </div>
           </div>
         </div>
@@ -100,7 +117,7 @@ const MainLayout = () => {
 
       {/* Main Content */}
       <main>
-        <Outlet />
+        {children || <Outlet />}
       </main>
     </div>
   )
