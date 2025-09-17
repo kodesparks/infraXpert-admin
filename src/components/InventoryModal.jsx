@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
-import { X } from 'lucide-react'
+import { X, RefreshCw } from 'lucide-react'
 
-const InventoryModal = ({ isOpen, onClose, onSubmit, editingItem, isEditMode = false }) => {
+const InventoryModal = ({ isOpen, onClose, onSubmit, editingItem, isEditMode = false, onGenerateId, autoGenerateId = false }) => {
   const [formData, setFormData] = useState({
     id: '',
     name: '',
@@ -13,6 +13,8 @@ const InventoryModal = ({ isOpen, onClose, onSubmit, editingItem, isEditMode = f
     unitPrice: '',
     discountCode: '',
     discountPercentage: '',
+    marginPercentage: '',
+    marginValue: '',
     tieredPricing: {
       '0-50K': '',
       '50-100K': '',
@@ -41,6 +43,8 @@ const InventoryModal = ({ isOpen, onClose, onSubmit, editingItem, isEditMode = f
         unitPrice: editingItem.unitPrice.toString(),
         discountCode: editingItem.discountCode || '',
         discountPercentage: editingItem.discountPercentage || '',
+        marginPercentage: editingItem.marginPercentage || '',
+        marginValue: editingItem.marginValue || '',
         tieredPricing: {
           '0-50K': editingItem.tieredPricing['0-50K'].toString(),
           '50-100K': editingItem.tieredPricing['50-100K'].toString(),
@@ -68,6 +72,8 @@ const InventoryModal = ({ isOpen, onClose, onSubmit, editingItem, isEditMode = f
         unitPrice: '',
         discountCode: '',
         discountPercentage: '',
+        marginPercentage: '',
+        marginValue: '',
         tieredPricing: {
           '0-50K': '',
           '50-100K': '',
@@ -116,6 +122,16 @@ const InventoryModal = ({ isOpen, onClose, onSubmit, editingItem, isEditMode = f
     }
   }
 
+  const handleGenerateId = () => {
+    if (onGenerateId && formData.category) {
+      const generatedId = onGenerateId(formData.category)
+      setFormData(prev => ({
+        ...prev,
+        id: generatedId
+      }))
+    }
+  }
+
   const handleSubmit = (e) => {
     e.preventDefault()
     onSubmit(formData)
@@ -142,14 +158,55 @@ const InventoryModal = ({ isOpen, onClose, onSubmit, editingItem, isEditMode = f
         <form onSubmit={handleSubmit} className="p-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Item ID / SKU</label>
-              <input
-                type="text"
-                value={formData.id}
-                onChange={(e) => handleFormChange('id', e.target.value)}
+              <label className="block text-sm font-medium text-gray-700 mb-2">Category</label>
+              <select
+                value={formData.category}
+                onChange={(e) => handleFormChange('category', e.target.value)}
                 className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 required
+              >
+                <option value="">Select Category</option>
+                <option value="Cement">Cement</option>
+                <option value="Steel">Steel</option>
+                <option value="Concrete Mix">Concrete Mix</option>
+                <option value="Other">Other</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Sub Category</label>
+              <input
+                type="text"
+                value={formData.subcategory}
+                onChange={(e) => handleFormChange('subcategory', e.target.value)}
+                placeholder="e.g., Portland Cement, TMT Bars"
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
+            </div>
+            {/* Category moved to top */}
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Item ID / SKU</label>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={formData.id}
+                  onChange={(e) => handleFormChange('id', e.target.value)}
+                  className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  required
+                />
+                {!isEditMode && (
+                  <button
+                    type="button"
+                    onClick={handleGenerateId}
+                    disabled={!formData.category}
+                    className="px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center gap-1 text-sm"
+                    title="Generate ID based on category"
+                  >
+                    <RefreshCw className="h-4 w-4" />
+                    Auto
+                  </button>
+                )}
+              </div>
             </div>
             
             <div>
@@ -186,16 +243,7 @@ const InventoryModal = ({ isOpen, onClose, onSubmit, editingItem, isEditMode = f
               )}
             </div>
             
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Sub Category</label>
-              <input
-                type="text"
-                value={formData.subcategory}
-                onChange={(e) => handleFormChange('subcategory', e.target.value)}
-                placeholder="e.g., Portland Cement, TMT Bars"
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              />
-            </div>
+            
             
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Grade</label>
@@ -208,21 +256,7 @@ const InventoryModal = ({ isOpen, onClose, onSubmit, editingItem, isEditMode = f
               />
             </div>
             
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Category</label>
-              <select
-                value={formData.category}
-                onChange={(e) => handleFormChange('category', e.target.value)}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                required
-              >
-                <option value="">Select Category</option>
-                <option value="Cement">Cement</option>
-                <option value="Steel">Steel</option>
-                <option value="Concrete Mix">Concrete Mix</option>
-                <option value="Other">Other</option>
-              </select>
-            </div>
+            
             
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Quantity in Stock</label>
@@ -285,6 +319,33 @@ const InventoryModal = ({ isOpen, onClose, onSubmit, editingItem, isEditMode = f
                 value={formData.discountPercentage}
                 onChange={(e) => handleFormChange('discountPercentage', e.target.value)}
                 placeholder="e.g., 10.5"
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Margin Percentage (%)</label>
+              <input
+                type="number"
+                step="0.1"
+                min="0"
+                max="100"
+                value={formData.marginPercentage}
+                onChange={(e) => handleFormChange('marginPercentage', e.target.value)}
+                placeholder="e.g., 15.5"
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Margin Value (₹)</label>
+              <input
+                type="number"
+                step="0.01"
+                min="0"
+                value={formData.marginValue}
+                onChange={(e) => handleFormChange('marginValue', e.target.value)}
+                placeholder="e.g., 150.00"
                 className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
             </div>

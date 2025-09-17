@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Plus, Search, Edit, Trash2 } from 'lucide-react'
+import { Plus, Search, Edit, Trash2, RefreshCw } from 'lucide-react'
 import InventoryModal from '@/components/InventoryModal'
 
 const Inventory = () => {
@@ -12,6 +12,7 @@ const Inventory = () => {
   const [showAddModal, setShowAddModal] = useState(false)
   const [showEditModal, setShowEditModal] = useState(false)
   const [editingItem, setEditingItem] = useState(null)
+  const [autoGenerateId, setAutoGenerateId] = useState(false)
   const [formData, setFormData] = useState({
     id: '',
     name: '',
@@ -151,6 +152,28 @@ const Inventory = () => {
     }
   }
 
+  // Generate unique Item ID based on category
+  const generateItemId = (category) => {
+    const categoryPrefix = {
+      'Cement': 'CMT',
+      'Steel': 'STL', 
+      'Concrete Mix': 'CMX',
+      'Other': 'OTH'
+    }
+    
+    const prefix = categoryPrefix[category] || 'ITM'
+    const existingIds = inventoryItems.map(item => item.id)
+    let counter = 1
+    let newId = `${prefix}${String(counter).padStart(3, '0')}`
+    
+    while (existingIds.includes(newId)) {
+      counter++
+      newId = `${prefix}${String(counter).padStart(3, '0')}`
+    }
+    
+    return newId
+  }
+
   const handleAddItem = () => {
     setFormData({
       id: '',
@@ -177,6 +200,7 @@ const Inventory = () => {
         '>200K': ''
       }
     })
+    setAutoGenerateId(false)
     setShowAddModal(true)
   }
 
@@ -410,6 +434,8 @@ const Inventory = () => {
         onFormChange={handleFormChange}
         isEditMode={showEditModal}
         editingItem={editingItem}
+        onGenerateId={generateItemId}
+        autoGenerateId={autoGenerateId}
       />
     </div>
   )

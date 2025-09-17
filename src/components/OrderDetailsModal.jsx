@@ -8,6 +8,8 @@ const OrderDetailsModal = ({ isOpen, onClose, order }) => {
     expectedDeliveryDate: "",
     status: "",
     remarks: "",
+    driverNumber: "",
+    truckNumber: "",
   });
 
   useEffect(() => {
@@ -17,6 +19,8 @@ const OrderDetailsModal = ({ isOpen, onClose, order }) => {
         expectedDeliveryDate: order.deliveryDate,
         status: order.status,
         remarks: "",
+        driverNumber: order.driverNumber || "",
+        truckNumber: order.truckNumber || order.vehicleNumber || "",
       });
       setIsEditMode(false); // Reset edit mode when order changes
     }
@@ -52,6 +56,8 @@ const OrderDetailsModal = ({ isOpen, onClose, order }) => {
       expectedDeliveryDate: order.deliveryDate,
       status: order.status,
       remarks: "",
+      driverNumber: order.driverNumber || "",
+      truckNumber: order.truckNumber || order.vehicleNumber || "",
     });
     setIsEditMode(false);
   };
@@ -285,6 +291,26 @@ const OrderDetailsModal = ({ isOpen, onClose, order }) => {
                         {editableData.expectedDeliveryDate}
                       </span>
                     )}
+                  </div>
+                  <div className="flex justify-between items-center gap-3">
+                    <span className="text-sm text-gray-600">Driver Number:</span>
+                    <input
+                      type="tel"
+                      value={editableData.driverNumber}
+                      onChange={(e) => handleInputChange("driverNumber", e.target.value)}
+                      className="border border-gray-300 rounded-lg px-3 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent w-44 md:w-56"
+                      placeholder="+91 9876543210"
+                    />
+                  </div>
+                  <div className="flex justify-between items-center gap-3">
+                    <span className="text-sm text-gray-600">Truck Number:</span>
+                    <input
+                      type="text"
+                      value={editableData.truckNumber}
+                      onChange={(e) => handleInputChange("truckNumber", e.target.value)}
+                      className="border border-gray-300 rounded-lg px-3 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent w-44 md:w-56"
+                      placeholder="e.g., MH-01-AB-1234"
+                    />
                   </div>
                   {editableData.status === "intransport" && (
                     <>

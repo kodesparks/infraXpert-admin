@@ -21,14 +21,17 @@ const Users = () => {
   const [showModal, setShowModal] = useState(false)
   const [editingUser, setEditingUser] = useState(null)
   const [viewingUser, setViewingUser] = useState(null)
+  const [activeTab, setActiveTab] = useState('employee') // employee | vendor | customer
+  const [defaultRoleForModal, setDefaultRoleForModal] = useState('employee')
   
   // Filters and pagination
   const [filters, setFilters] = useState({
     search: '',
-    role: 'all',
+    role: 'employee',
     isActive: 'all',
     page: 1,
-    limit: 10
+    limit: 10,
+    pincode: ''
   })
   
   const [pagination, setPagination] = useState({
@@ -45,6 +48,17 @@ const Users = () => {
     loadStats()
   }, [filters])
 
+  // Switch role filter when tab changes
+  useEffect(() => {
+    const tabToRole = {
+      employee: 'employee',
+      vendor: 'vendor',
+      customer: 'customer'
+    }
+    setFilters(prev => ({ ...prev, role: tabToRole[activeTab], page: 1 }))
+    setDefaultRoleForModal(tabToRole[activeTab])
+  }, [activeTab])
+
   const loadUsers = async () => {
     try {
       setLoading(true)
@@ -53,7 +67,8 @@ const Users = () => {
         limit: filters.limit,
         ...(filters.role !== 'all' && { role: filters.role }),
         ...(filters.isActive !== 'all' && { isActive: filters.isActive === 'active' }),
-        ...(filters.search && { search: filters.search })
+        ...(filters.search && { search: filters.search }),
+        ...(filters.role === 'vendor' && filters.pincode && { pincode: filters.pincode })
       }
       
       const response = await userService.getUsers(params)
@@ -157,9 +172,28 @@ const Users = () => {
           {canCreateUser && (
             <Button onClick={handleCreateUser} className="flex items-center gap-2">
               <Plus className="h-4 w-4" />
-              Create User
+              {activeTab === 'employee' && 'Onboard Employee'}
+              {activeTab === 'vendor' && 'Onboard Vendor'}
+              {activeTab === 'customer' && 'Onboard Customer'}
             </Button>
           )}
+        </div>
+
+        {/* Tabs */}
+        <div className="flex items-center gap-2 border-b">
+          {[
+            { key: 'employee', label: 'Employee Onboard & View' },
+            { key: 'vendor', label: 'Vendor Onboard & View' },
+            { key: 'customer', label: 'Customer Onboard & View' }
+          ].map(tab => (
+            <button
+              key={tab.key}
+              onClick={() => setActiveTab(tab.key)}
+              className={`px-4 py-2 text-sm font-medium rounded-t-md ${activeTab === tab.key ? 'bg-white border border-b-0 border-gray-200' : 'text-gray-600 hover:text-gray-800'}`}
+            >
+              {tab.label}
+            </button>
+          ))}
         </div>
 
         {/* Stats */}
@@ -185,20 +219,22 @@ const Users = () => {
                 />
               </div>
               
-              <Select value={filters.role} onValueChange={(value) => handleFilterChange('role', value)}>
-                <SelectTrigger>
-                  <SelectValue placeholder="All Roles" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Roles</SelectItem>
-                  <SelectItem value="admin">Admin</SelectItem>
-                  <SelectItem value="manager">Manager</SelectItem>
-                  <SelectItem value="employee">Employee</SelectItem>
-                  <SelectItem value="vendor">Vendor</SelectItem>
-                  <SelectItem value="customer">Customer</SelectItem>
-                </SelectContent>
-              </Select>
+              {/* Role controlled by tab */}
+              <div className="flex items-center text-sm text-gray-600">
+                <span className="px-3 py-2 border rounded-md bg-gray-50">Role: {filters.role}</span>
+              </div>
               
+              {/* Vendor pincode filter */}
+              {activeTab === 'vendor' ? (
+                <Input
+                  placeholder="Filter by Pincode"
+                  value={filters.pincode}
+                  onChange={(e) => handleFilterChange('pincode', e.target.value)}
+                />
+              ) : (
+                <div />
+              )}
+
               <Select value={filters.isActive} onValueChange={(value) => handleFilterChange('isActive', value)}>
                 <SelectTrigger>
                   <SelectValue placeholder="All Status" />
@@ -222,6 +258,15 @@ const Users = () => {
             </div>
           </CardContent>
         </Card>
+
+        {/* Vendor tab: action to onboard vendor employee */}
+        {activeTab === 'vendor' && canCreateUser && (
+          <div className="flex justify-end">
+            <Button variant="secondary" onClick={() => { setDefaultRoleForModal('employee'); setEditingUser(null); setShowModal(true); }}>
+              Onboard Vendor Employee
+            </Button>
+          </div>
+        )}
 
         {/* Users Table */}
         <Card>
@@ -287,6 +332,7 @@ const Users = () => {
         onSubmit={handleSubmitUser}
         user={editingUser}
         isEditMode={!!editingUser}
+        defaultRole={!editingUser ? defaultRoleForModal : undefined}
       />
     </div>
   )

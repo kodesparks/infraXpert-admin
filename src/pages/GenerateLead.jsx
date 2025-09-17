@@ -10,6 +10,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 const GenerateLead = () => {
   const [formData, setFormData] = useState({
     category: 'cement',
+    subcategory: '',
+    grade: '',
     quantity: '',
     unit: '',
     estimatedPrice: '',
@@ -82,6 +84,32 @@ const GenerateLead = () => {
                     <SelectItem value="concrete_mix">Concrete Mix</SelectItem>
                   </SelectContent>
                 </Select>
+              </div>
+
+              {/* Sub Category */}
+              <div>
+                <Label htmlFor="subcategory" className="block text-sm font-medium text-gray-700 mb-2">
+                  Sub Category
+                </Label>
+                <Input
+                  id="subcategory"
+                  placeholder="e.g., Portland Cement, TMT Bars"
+                  value={formData.subcategory}
+                  onChange={(e) => handleInputChange('subcategory', e.target.value)}
+                />
+              </div>
+
+              {/* Grade */}
+              <div>
+                <Label htmlFor="grade" className="block text-sm font-medium text-gray-700 mb-2">
+                  Grade
+                </Label>
+                <Input
+                  id="grade"
+                  placeholder="e.g., OPC 53, Fe 500"
+                  value={formData.grade}
+                  onChange={(e) => handleInputChange('grade', e.target.value)}
+                />
               </div>
 
               {/* Quantity */}
@@ -233,9 +261,14 @@ const GenerateLead = () => {
                   <SelectContent>
                     <SelectItem value="RTGS">RTGS</SelectItem>
                     <SelectItem value="NEFT">NEFT</SelectItem>
+                    <SelectItem value="BankTransfer">Bank Transfer</SelectItem>
+                    <SelectItem value="NetBanking">Net Banking</SelectItem>
                     <SelectItem value="UPI">UPI</SelectItem>
+                    <SelectItem value="CreditCard">Credit Card</SelectItem>
+                    <SelectItem value="DebitCard">Debit Card</SelectItem>
                     <SelectItem value="Cash">Cash</SelectItem>
                     <SelectItem value="Cheque">Cheque</SelectItem>
+                    <SelectItem value="DemandDraft">Demand Draft</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

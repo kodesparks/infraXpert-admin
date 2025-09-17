@@ -86,66 +86,44 @@ const Home = () => {
 
   return (
     <div className="p-6">
-      {/* Date Range Filter */}
-      <div className="mb-6">
-        <Card>
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-lg font-medium flex items-center">
-                <Calendar className="w-5 h-5 mr-2" />
-                Date Range Filter
-              </CardTitle>
-              <button
-                onClick={clearDateRange}
-                className="text-sm text-blue-600 hover:text-blue-800"
-              >
-                Clear Filter
-              </button>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  From Date
-                </label>
-                <input
-                  type="date"
-                  value={dateRange.from}
-                  onChange={(e) => handleDateChange('from', e.target.value)}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  To Date
-                </label>
-                <input
-                  type="date"
-                  value={dateRange.to}
-                  onChange={(e) => handleDateChange('to', e.target.value)}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                />
-              </div>
-              <div className="flex items-end">
-                <div className="text-sm text-gray-600">
-                  {dateRange.from && dateRange.to ? (
-                    <span>Showing data from {dateRange.from} to {dateRange.to}</span>
-                  ) : (
-                    <span>Showing all data</span>
-                  )}
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+      {/* KPI Header with inline Date Filter (no card) */}
+      <div className="mb-6 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+        <h2 className="text-xl font-semibold text-gray-900">
+          Key Performance Indicators
+        </h2>
+        <div className="flex items-center gap-3 text-sm">
+          <div className="hidden md:flex items-center text-gray-700">
+            <Calendar className="w-4 h-4 mr-2" />
+            <span className="font-medium">Date Range:</span>
+          </div>
+          <label className="sr-only" htmlFor="fromDate">From Date</label>
+          <input
+            id="fromDate"
+            type="date"
+            value={dateRange.from}
+            onChange={(e) => handleDateChange('from', e.target.value)}
+            className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          />
+          <span className="text-gray-500">to</span>
+          <label className="sr-only" htmlFor="toDate">To Date</label>
+          <input
+            id="toDate"
+            type="date"
+            value={dateRange.to}
+            onChange={(e) => handleDateChange('to', e.target.value)}
+            className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          />
+          <button
+            onClick={clearDateRange}
+            className="text-blue-600 hover:text-blue-800"
+          >
+            Clear
+          </button>
+        </div>
       </div>
 
       {/* Key Performance Indicators */}
       <div className="mb-8">
-        <h2 className="text-xl font-semibold text-gray-900 mb-6">
-          Key Performance Indicators
-        </h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {/* Cement Orders Card */}
           <Card>

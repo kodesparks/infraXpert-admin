@@ -12,7 +12,8 @@ const UserModal = ({
   onClose, 
   onSubmit, 
   user = null, 
-  isEditMode = false 
+  isEditMode = false,
+  defaultRole
 }) => {
   const [formData, setFormData] = useState({
     name: '',
@@ -21,7 +22,7 @@ const UserModal = ({
     password: '',
     address: '',
     pincode: '',
-    role: '',
+    role: defaultRole || '',
     employeeId: '',
     aadharNumber: '',
     panCard: '',
