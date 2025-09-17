@@ -4,6 +4,7 @@ import Cookies from 'js-cookie'
 // API Configuration
 const API_CONFIG = {
   BASE_URL: 'https://api.infraxpert.in',
+  // BASE_URL: 'http://localhost:5000',
   TIMEOUT: 10000
 }
 

@@ -1,6 +1,7 @@
 // API Configuration
 export const API_CONFIG = {
   BASE_URL: 'https://api.infraxpert.in',
+  // BASE_URL: 'http://localhost:5000',
   ENDPOINTS: {
     AUTH: {
       LOGIN: '/api/auth/login',

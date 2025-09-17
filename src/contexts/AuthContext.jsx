@@ -95,7 +95,10 @@ export const AuthProvider = ({ children }) => {
   // Logout function
   const logout = async () => {
     try {
-      await authService.logout()
+      const refreshToken = Cookies.get('refreshToken')
+      if (refreshToken) {
+        await authService.logout(refreshToken)
+      }
     } catch (error) {
       console.error('Logout error:', error)
     } finally {
@@ -119,6 +122,10 @@ export const AuthProvider = ({ children }) => {
 
   // Check if user has specific permission
   const hasPermission = (permission) => {
+    // Admin has all permissions
+    if (user?.role === 'admin') {
+      return true
+    }
     return user?.permissions?.includes(permission) || false
   }
 

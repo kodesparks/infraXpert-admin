@@ -1,441 +1,299 @@
-import { useState } from 'react'
-import { Plus, Search, Edit, Trash2, RefreshCw } from 'lucide-react'
-import InventoryModal from '@/components/InventoryModal'
+import { useState, useEffect } from 'react'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Badge } from '@/components/ui/badge'
+import { Plus, Search, Filter, RefreshCw } from 'lucide-react'
+import { useAuth } from '@/contexts/AuthContext'
+import inventoryService from '@/services/inventoryService'
+import InventoryModal from '@/components/inventory/InventoryModal'
+import InventoryTable from '@/components/inventory/InventoryTable'
+import InventoryStats from '@/components/inventory/InventoryStats'
+import ImageManagementModal from '@/components/inventory/ImageManagementModal'
 
 const Inventory = () => {
+  const { user: currentUser, hasPermission } = useAuth()
+  
+  // State management
+  const [items, setItems] = useState([])
+  const [stats, setStats] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [showModal, setShowModal] = useState(false)
+  const [editingItem, setEditingItem] = useState(null)
+  const [showImageModal, setShowImageModal] = useState(false)
+  const [imageItem, setImageItem] = useState(null)
+  
+  // Filters and pagination
   const [filters, setFilters] = useState({
     search: '',
     category: 'all',
-    status: 'all'
+    subCategory: 'all',
+    vendorId: 'all',
+    isActive: 'all',
+    page: 1,
+    limit: 20
+  })
+  
+  const [pagination, setPagination] = useState({
+    currentPage: 1,
+    totalPages: 1,
+    totalItems: 0,
+    hasNext: false,
+    hasPrev: false
   })
 
-  const [showAddModal, setShowAddModal] = useState(false)
-  const [showEditModal, setShowEditModal] = useState(false)
-  const [editingItem, setEditingItem] = useState(null)
-  const [autoGenerateId, setAutoGenerateId] = useState(false)
-  const [formData, setFormData] = useState({
-    id: '',
-    name: '',
-    category: '',
-    quantity: '',
-    unit: '',
-    unitPrice: '',
-    discountCode: '',
-    discountPercentage: '',
-    supplier: '',
-    status: 'In Stock',
-    subcategory: '',
-    grade: '',
-    details: '',
-    specification: '',
-    deliveryInfo: '',
-    image: '',
-    tieredPricing: {
-      '0-50K': '',
-      '50-100K': '',
-      '100-150K': '',
-      '150-200K': '',
-      '>200K': ''
-    }
-  })
+  // Load items and stats
+  useEffect(() => {
+    loadItems()
+    loadStats()
+  }, [filters])
 
-  // Sample inventory data
-  const inventoryItems = [
-    {
-      id: 'SKU001',
-      name: 'Ultratech Cement',
-      category: 'Cement',
-      quantity: 150,
-      unit: 'bags',
-      unitPrice: 450,
-      discountCode: 'CEMENT10',
-      discountPercentage: 10,
-      image: 'https://images.unsplash.com/photo-1581094794329-c8112a89af12?w=100&h=100&fit=crop&crop=center',
-      tieredPricing: {
-        '0-50K': 3,
-        '50-100K': 4,
-        '100-150K': 5,
-        '150-200K': 6,
-        '>200K': 7
-      },
-      supplier: 'Cement Suppliers Ltd',
-      lastUpdated: '1/15/2024',
-      status: 'In Stock'
-    },
-    {
-      id: 'SKU002',
-      name: 'TMT Steel Bars 12mm',
-      category: 'Steel',
-      quantity: 5,
-      unit: 'tons',
-      unitPrice: 65000,
-      discountCode: 'STEEL15',
-      discountPercentage: 15,
-      image: 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=100&h=100&fit=crop&crop=center',
-      tieredPricing: {
-        '0-50K': 62000,
-        '50-100K': 61000,
-        '100-150K': 60000,
-        '150-200K': 59000,
-        '>200K': 58000
-      },
-      supplier: 'Steel World Corp',
-      lastUpdated: '1/14/2024',
-      status: 'Low Stock'
-    },
-    {
-      id: 'SKU003',
-      name: 'Ready-Mix Concrete M25',
-      category: 'Concrete Mix',
-      quantity: 0,
-      unit: 'cubic meters',
-      unitPrice: 4500,
-      discountCode: 'CONCRETE5',
-      discountPercentage: 5,
-      image: 'https://images.unsplash.com/photo-1541888946425-d81bb19240f5?w=100&h=100&fit=crop&crop=center',
-      tieredPricing: {
-        '0-50K': 4500,
-        '50-100K': 4400,
-        '100-150K': 4300,
-        '150-200K': 4200,
-        '>200K': 4100
-      },
-      supplier: 'Concrete Solutions',
-      lastUpdated: '1/10/2024',
-      status: 'Out of Stock'
-    },
-    {
-      id: 'SKU004',
-      name: 'Construction Sand',
-      category: 'Other',
-      quantity: 25,
-      unit: 'tons',
-      unitPrice: 1200,
-      discountCode: '',
-      discountPercentage: 0,
-      image: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=100&h=100&fit=crop&crop=center',
-      tieredPricing: {
-        '0-50K': 1200,
-        '50-100K': 1180,
-        '100-150K': 1160,
-        '150-200K': 1140,
-        '>200K': 1120
-      },
-      supplier: 'Sand & Gravel Co',
-      lastUpdated: '1/12/2024',
-      status: 'In Stock'
+  const loadItems = async () => {
+    try {
+      setLoading(true)
+      const params = {
+        page: filters.page,
+        limit: filters.limit,
+        ...(filters.category !== 'all' && { category: filters.category }),
+        ...(filters.subCategory !== 'all' && { subCategory: filters.subCategory }),
+        ...(filters.vendorId !== 'all' && { vendorId: filters.vendorId }),
+        ...(filters.isActive !== 'all' && { isActive: filters.isActive === 'active' }),
+        ...(filters.search && { search: filters.search })
+      }
+      
+      const response = await inventoryService.getInventoryItems(params)
+      setItems(response.inventory)
+      setPagination(response.pagination)
+    } catch (error) {
+      console.error('Error loading inventory items:', error)
+    } finally {
+      setLoading(false)
     }
-  ]
+  }
+
+  const loadStats = async () => {
+    try {
+      const response = await inventoryService.getOverviewStats()
+      setStats(response.stats)
+    } catch (error) {
+      console.error('Error loading stats:', error)
+    }
+  }
 
   const handleFilterChange = (field, value) => {
     setFilters(prev => ({
       ...prev,
-      [field]: value
+      [field]: value,
+      page: 1 // Reset to first page when filters change
     }))
   }
 
-  const handleFormChange = (field, value) => {
-    if (field.includes('.')) {
-      const [parent, child] = field.split('.')
-      setFormData(prev => ({
-        ...prev,
-        [parent]: {
-          ...prev[parent],
-          [child]: value
-        }
-      }))
-    } else {
-      setFormData(prev => ({
-        ...prev,
-        [field]: value
-      }))
-    }
-  }
-
-  // Generate unique Item ID based on category
-  const generateItemId = (category) => {
-    const categoryPrefix = {
-      'Cement': 'CMT',
-      'Steel': 'STL', 
-      'Concrete Mix': 'CMX',
-      'Other': 'OTH'
-    }
-    
-    const prefix = categoryPrefix[category] || 'ITM'
-    const existingIds = inventoryItems.map(item => item.id)
-    let counter = 1
-    let newId = `${prefix}${String(counter).padStart(3, '0')}`
-    
-    while (existingIds.includes(newId)) {
-      counter++
-      newId = `${prefix}${String(counter).padStart(3, '0')}`
-    }
-    
-    return newId
-  }
-
-  const handleAddItem = () => {
-    setFormData({
-      id: '',
-      name: '',
-      category: '',
-      quantity: '',
-      unit: '',
-      unitPrice: '',
-      discountCode: '',
-      discountPercentage: '',
-      supplier: '',
-      status: 'In Stock',
-      subcategory: '',
-      grade: '',
-      details: '',
-      specification: '',
-      deliveryInfo: '',
-      image: '',
-      tieredPricing: {
-        '0-50K': '',
-        '50-100K': '',
-        '100-150K': '',
-        '150-200K': '',
-        '>200K': ''
-      }
-    })
-    setAutoGenerateId(false)
-    setShowAddModal(true)
+  const handleCreateItem = () => {
+    setEditingItem(null)
+    setShowModal(true)
   }
 
   const handleEditItem = (item) => {
-    setFormData({
-      id: item.id,
-      name: item.name,
-      category: item.category,
-      quantity: item.quantity,
-      unit: item.unit,
-      unitPrice: item.unitPrice,
-      discountCode: item.discountCode || '',
-      discountPercentage: item.discountPercentage || '',
-      supplier: item.supplier,
-      status: item.status,
-      subcategory: item.subcategory || '',
-      grade: item.grade || '',
-      details: item.details || '',
-      specification: item.specification || '',
-      deliveryInfo: item.deliveryInfo || '',
-      tieredPricing: {
-        '0-50K': item.tieredPricing['0-50K'],
-        '50-100K': item.tieredPricing['50-100K'],
-        '100-150K': item.tieredPricing['100-150K'],
-        '150-200K': item.tieredPricing['150-200K'],
-        '>200K': item.tieredPricing['>200K']
-      }
-    })
     setEditingItem(item)
-    setShowEditModal(true)
+    setShowModal(true)
   }
 
-  const handleSubmit = (formData) => {
-    // Here you would typically save to your backend
-    console.log('Form submitted:', formData)
-    setShowAddModal(false)
-    setShowEditModal(false)
-    setEditingItem(null)
+  const handleSubmitItem = async () => {
+    loadItems()
+    loadStats()
   }
 
-  const closeModals = () => {
-    setShowAddModal(false)
-    setShowEditModal(false)
-    setEditingItem(null)
-  }
-
-  const getStatusBadge = (status) => {
-    const statusConfig = {
-      'In Stock': 'bg-green-100 text-green-800',
-      'Low Stock': 'bg-orange-100 text-orange-800', 
-      'Out of Stock': 'bg-red-100 text-red-800'
+  const handleDeleteItem = async (itemId) => {
+    try {
+      await inventoryService.deleteInventoryItem(itemId)
+      loadItems()
+      loadStats()
+    } catch (error) {
+      console.error('Error deleting item:', error)
     }
-    
-    const className = statusConfig[status] || 'bg-gray-100 text-gray-800'
-    
-    return (
-      <span className={`px-2 py-1 text-xs font-medium rounded-full ${className}`}>
-        {status}
-      </span>
-    )
   }
 
-  const getCategoryBadge = (category) => {
-    return (
-      <span className="px-2 py-1 text-xs font-medium bg-blue-100 text-blue-800 rounded-full capitalize">
-        {category}
-      </span>
-    )
+  const handleReactivateItem = async (itemId) => {
+    try {
+      await inventoryService.reactivateInventoryItem(itemId)
+      loadItems()
+      loadStats()
+    } catch (error) {
+      console.error('Error reactivating item:', error)
+    }
   }
 
-  // Filter inventory items based on current filters
-  const filteredItems = inventoryItems.filter(item => {
-    if (filters.search && !item.name.toLowerCase().includes(filters.search.toLowerCase()) && 
-        !item.id.toLowerCase().includes(filters.search.toLowerCase()) &&
-        !item.category.toLowerCase().includes(filters.search.toLowerCase())) return false
-    if (filters.category !== 'all' && item.category !== filters.category) return false
-    if (filters.status !== 'all' && item.status !== filters.status) return false
-    return true
-  })
+  const handleManageImages = (item) => {
+    setImageItem(item)
+    setShowImageModal(true)
+  }
+
+  const canManageInventory = hasPermission('inventory_page') || currentUser?.role === 'admin'
 
   return (
     <div className="p-6">
-      <div className="max-w-7xl mx-auto">
+      <div className="max-w-7xl mx-auto space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between mb-8">
+        <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold text-gray-900">Inventory Management</h1>
             <p className="text-gray-600 mt-1">Manage your construction materials efficiently</p>
           </div>
-          <button 
-            onClick={handleAddItem}
-            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 whitespace-nowrap cursor-pointer font-medium"
-          >
-            <Plus className="h-4 w-4 mr-2 inline" />
-            Add New Item
-          </button>
-        </div>
-
-        {/* Filters */}
-        <div className="bg-white border border-gray-200 rounded-lg p-6 mb-6">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="relative">
-              <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-              <input
-                type="text"
-                placeholder="Search by Item Name, SKU, or Category..."
-                value={filters.search}
-                onChange={(e) => handleFilterChange('search', e.target.value)}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm pl-10 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              />
-            </div>
-            <select 
-              value={filters.category} 
-              onChange={(e) => handleFilterChange('category', e.target.value)}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm pr-8 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            >
-              <option value="all">All Categories</option>
-              <option value="Cement">Cement</option>
-              <option value="Steel">Steel</option>
-              <option value="Concrete Mix">Concrete Mix</option>
-              <option value="Other">Other</option>
-            </select>
-            <select 
-              value={filters.status} 
-              onChange={(e) => handleFilterChange('status', e.target.value)}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm pr-8 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            >
-              <option value="all">All Stock Status</option>
-              <option value="In Stock">In Stock</option>
-              <option value="Low Stock">Low Stock</option>
-              <option value="Out of Stock">Out of Stock</option>
-            </select>
-          </div>
-        </div>
-
-        {/* Inventory Table */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Image</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Item ID / SKU</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Item Name</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Category</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Quantity in Stock</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Unit Price (₹)</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Discount %</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">0-50K</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">50-100K</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">100-150K</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">150-200K</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">&gt;200K</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Supplier</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Last Updated</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {filteredItems.map((item) => (
-                  <tr key={item.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center">
-                        <img 
-                          src={item.image} 
-                          alt={item.name}
-                          className="h-12 w-12 rounded-lg object-cover border border-gray-200"
-                          onError={(e) => {
-                            e.target.src = 'https://via.placeholder.com/100x100?text=No+Image'
-                          }}
-                        />
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-mono text-gray-900">{item.id}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{item.name}</td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className="px-2 py-1 text-xs font-medium bg-blue-100 text-blue-800 rounded-full capitalize">
-                        {item.category}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                      <span className="font-medium">{item.quantity}</span>
-                      <span className="text-gray-500 ml-1">{item.unit}</span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">₹{item.unitPrice.toLocaleString()}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{item.discountPercentage}%</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">₹{item.tieredPricing['0-50K'].toLocaleString()}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">₹{item.tieredPricing['50-100K'].toLocaleString()}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">₹{item.tieredPricing['100-150K'].toLocaleString()}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">₹{item.tieredPricing['150-200K'].toLocaleString()}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">₹{item.tieredPricing['>200K'].toLocaleString()}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{item.supplier}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{item.lastUpdated}</td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      {getStatusBadge(item.status)}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                      <div className="flex items-center justify-center gap-2">
-                        <button 
-                          onClick={() => handleEditItem(item)}
-                          className="text-blue-600 hover:text-blue-900 whitespace-nowrap cursor-pointer"
-                        >
-                          <Edit className="h-4 w-4" />
-                        </button>
-                        <button className="text-red-600 hover:text-red-900 whitespace-nowrap cursor-pointer">
-                          <Trash2 className="h-4 w-4" />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-          
-          {filteredItems.length === 0 && (
-            <div className="text-center py-12">
-              <p className="text-gray-500">No inventory items found matching the current filters.</p>
-            </div>
+          {canManageInventory && (
+            <Button onClick={handleCreateItem} className="flex items-center gap-2">
+              <Plus className="h-4 w-4" />
+              Add New Item
+            </Button>
           )}
         </div>
+
+        {/* Stats */}
+        <InventoryStats stats={stats} />
+
+        {/* Filters */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Filter className="h-5 w-5" />
+              Filters
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+              <div className="relative">
+                <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                <Input
+                  placeholder="Search items..."
+                  value={filters.search}
+                  onChange={(e) => handleFilterChange('search', e.target.value)}
+                  className="pl-10"
+                />
+              </div>
+              
+              <Select value={filters.category} onValueChange={(value) => handleFilterChange('category', value)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="All Categories" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Categories</SelectItem>
+                  <SelectItem value="Cement">Cement</SelectItem>
+                  <SelectItem value="Iron">Iron</SelectItem>
+                  <SelectItem value="Concrete Mixer">Concrete Mixer</SelectItem>
+                </SelectContent>
+              </Select>
+              
+              <Select value={filters.subCategory} onValueChange={(value) => handleFilterChange('subCategory', value)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="All Sub Categories" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Sub Categories</SelectItem>
+                  <SelectItem value="PPC">PPC</SelectItem>
+                  <SelectItem value="OPC">OPC</SelectItem>
+                  <SelectItem value="PSC">PSC</SelectItem>
+                  <SelectItem value="TMT Bars">TMT Bars</SelectItem>
+                  <SelectItem value="Mild Steel">Mild Steel</SelectItem>
+                </SelectContent>
+              </Select>
+              
+              <Select value={filters.isActive} onValueChange={(value) => handleFilterChange('isActive', value)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="All Status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Status</SelectItem>
+                  <SelectItem value="active">Active</SelectItem>
+                  <SelectItem value="inactive">Inactive</SelectItem>
+                </SelectContent>
+              </Select>
+              
+              <Button 
+                variant="outline" 
+                onClick={loadItems}
+                disabled={loading}
+                className="flex items-center gap-2"
+              >
+                <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+                Refresh
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Inventory Table */}
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <CardTitle>Inventory Items ({pagination.totalItems})</CardTitle>
+              <div className="flex items-center gap-2">
+                <Badge variant="outline">
+                  Page {pagination.currentPage} of {pagination.totalPages}
+                </Badge>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent>
+            {loading ? (
+              <div className="flex items-center justify-center py-12">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+              </div>
+            ) : (
+              <InventoryTable
+                items={items}
+                onEdit={handleEditItem}
+                onDelete={handleDeleteItem}
+                onReactivate={handleReactivateItem}
+                onManageImages={handleManageImages}
+                currentUserRole={currentUser?.role}
+              />
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Pagination */}
+        {pagination.totalPages > 1 && (
+          <div className="flex items-center justify-center gap-2">
+            <Button
+              variant="outline"
+              onClick={() => handleFilterChange('page', filters.page - 1)}
+              disabled={!pagination.hasPrev || loading}
+            >
+              Previous
+            </Button>
+            
+            <span className="text-sm text-gray-600">
+              Page {pagination.currentPage} of {pagination.totalPages}
+            </span>
+            
+            <Button
+              variant="outline"
+              onClick={() => handleFilterChange('page', filters.page + 1)}
+              disabled={!pagination.hasNext || loading}
+            >
+              Next
+            </Button>
+          </div>
+        )}
       </div>
 
       {/* Inventory Modal */}
       <InventoryModal
-        isOpen={showAddModal || showEditModal}
-        onClose={closeModals}
-        onSubmit={handleSubmit}
-        formData={formData}
-        onFormChange={handleFormChange}
-        isEditMode={showEditModal}
-        editingItem={editingItem}
-        onGenerateId={generateItemId}
-        autoGenerateId={autoGenerateId}
+        isOpen={showModal}
+        onClose={() => setShowModal(false)}
+        onSubmit={handleSubmitItem}
+        item={editingItem}
+        isEditMode={!!editingItem}
+      />
+
+      {/* Image Management Modal */}
+      <ImageManagementModal
+        isOpen={showImageModal}
+        onClose={() => {
+          setShowImageModal(false)
+          setImageItem(null)
+        }}
+        item={imageItem}
       />
     </div>
   )

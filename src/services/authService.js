@@ -28,9 +28,8 @@ class AuthService {
   }
 
   // Logout user
-  async logout() {
+  async logout(refreshToken) {
     try {
-      const refreshToken = Cookies.get('refreshToken')
       if (refreshToken) {
         await apiClient.post('/api/auth/logout', {
           refreshToken
