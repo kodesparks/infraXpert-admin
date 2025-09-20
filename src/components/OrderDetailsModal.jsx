@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { X } from "lucide-react";
+import { X, Clock, CheckCircle, Truck, MapPin, Package } from "lucide-react";
 
 const OrderDetailsModal = ({ isOpen, onClose, order }) => {
   const [isEditMode, setIsEditMode] = useState(false);
@@ -69,12 +69,103 @@ const OrderDetailsModal = ({ isOpen, onClose, order }) => {
     }));
   };
 
+  // Order timeline data
+  const getOrderTimeline = () => {
+    const timeline = [
+      {
+        id: 'order_placed',
+        title: 'Order Placed',
+        description: 'Order has been confirmed and placed',
+        timestamp: order?.orderDate || '2024-01-15',
+        status: 'completed',
+        icon: CheckCircle
+      },
+      {
+        id: 'processing',
+        title: 'Processing',
+        description: 'Order is being prepared for shipment',
+        timestamp: order?.orderDate || '2024-01-15',
+        status: editableData.status === 'confirmed' ? 'current' : 'completed',
+        icon: Package
+      },
+      {
+        id: 'truck_load',
+        title: 'Truck Loading',
+        description: 'Items are being loaded onto the truck',
+        timestamp: editableData.status === 'truck_load' ? new Date().toISOString().split('T')[0] : null,
+        status: editableData.status === 'truck_load' ? 'current' : 
+                (['intransport', 'delivered'].includes(editableData.status) ? 'completed' : 'pending'),
+        icon: Truck
+      },
+      {
+        id: 'in_transit',
+        title: 'In Transit',
+        description: 'Order is on the way to destination',
+        timestamp: editableData.status === 'intransport' ? new Date().toISOString().split('T')[0] : null,
+        status: editableData.status === 'intransport' ? 'current' : 
+                (editableData.status === 'delivered' ? 'completed' : 'pending'),
+        icon: MapPin
+      },
+      {
+        id: 'delivered',
+        title: 'Delivered',
+        description: 'Order has been delivered successfully',
+        timestamp: editableData.status === 'delivered' ? new Date().toISOString().split('T')[0] : null,
+        status: editableData.status === 'delivered' ? 'completed' : 'pending',
+        icon: CheckCircle
+      }
+    ];
+
+    // Add cancelled status if order is cancelled
+    if (editableData.status === 'cancelled') {
+      timeline.push({
+        id: 'cancelled',
+        title: 'Order Cancelled',
+        description: 'Order has been cancelled',
+        timestamp: new Date().toISOString().split('T')[0],
+        status: 'cancelled',
+        icon: X
+      });
+    }
+
+    return timeline;
+  };
+
+  const getTimelineIcon = (status, IconComponent) => {
+    const baseClasses = "w-5 h-5";
+    
+    switch (status) {
+      case 'completed':
+        return <CheckCircle className={`${baseClasses} text-green-600`} />;
+      case 'current':
+        return <IconComponent className={`${baseClasses} text-blue-600`} />;
+      case 'cancelled':
+        return <X className={`${baseClasses} text-red-600`} />;
+      default:
+        return <Clock className={`${baseClasses} text-gray-400`} />;
+    }
+  };
+
+  const getTimelineStatusColor = (status) => {
+    switch (status) {
+      case 'completed':
+        return 'border-green-500 bg-green-50';
+      case 'current':
+        return 'border-blue-500 bg-blue-50';
+      case 'cancelled':
+        return 'border-red-500 bg-red-50';
+      default:
+        return 'border-gray-300 bg-gray-50';
+    }
+  };
+
   const getStatusBadge = (status) => {
     const statusConfig = {
       delivered: "bg-green-100 text-green-800",
       truck_load: "bg-blue-100 text-blue-800",
       confirmed: "bg-orange-100 text-orange-800",
       intransport: "bg-yellow-100 text-yellow-800",
+      cancelled: "bg-red-100 text-red-800",
     };
 
     const className = statusConfig[status] || "bg-gray-100 text-gray-800";
@@ -135,6 +226,56 @@ const OrderDetailsModal = ({ isOpen, onClose, order }) => {
         </div>
 
         <div className="p-6">
+          {/* Order Timeline */}
+          <div className="mb-6">
+            <h4 className="text-lg font-medium text-gray-900 mb-4">Order Timeline</h4>
+            <div className="relative">
+              <div className="absolute left-4 top-0 bottom-0 w-0.5 bg-gray-200"></div>
+              <div className="space-y-4">
+                {getOrderTimeline().map((step, index) => {
+                  const IconComponent = step.icon;
+                  return (
+                    <div key={step.id} className="relative flex items-start">
+                      <div className={`relative z-10 flex items-center justify-center w-8 h-8 rounded-full border-2 ${getTimelineStatusColor(step.status)}`}>
+                        {getTimelineIcon(step.status, IconComponent)}
+                      </div>
+                      <div className="ml-4 flex-1">
+                        <div className="flex items-center justify-between">
+                          <h5 className={`text-sm font-medium ${
+                            step.status === 'completed' ? 'text-green-900' :
+                            step.status === 'current' ? 'text-blue-900' :
+                            step.status === 'cancelled' ? 'text-red-900' : 'text-gray-500'
+                          }`}>
+                            {step.title}
+                          </h5>
+                          {step.timestamp && (
+                            <span className="text-xs text-gray-500">
+                              {step.timestamp}
+                            </span>
+                          )}
+                        </div>
+                        <p className={`text-sm ${
+                          step.status === 'completed' ? 'text-green-700' :
+                          step.status === 'current' ? 'text-blue-700' :
+                          step.status === 'cancelled' ? 'text-red-700' : 'text-gray-500'
+                        }`}>
+                          {step.description}
+                        </p>
+                        {step.status === 'current' && (
+                          <div className="mt-2">
+                            <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                              In Progress
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-6">
               <div>
@@ -215,6 +356,7 @@ const OrderDetailsModal = ({ isOpen, onClose, order }) => {
                       <option value="truck_load">Truck Load</option>
                       <option value="intransport">In Transport</option>
                       <option value="delivered">Delivered</option>
+                      <option value="cancelled">Cancelled</option>
                     </select>
                   </div>
                 </div>

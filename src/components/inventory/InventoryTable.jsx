@@ -3,6 +3,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Edit, Trash2, Image as ImageIcon, Package, Building, RotateCcw } from 'lucide-react'
+import { generateInventoryCode } from '@/utils/inventoryUtils'
 
 const InventoryTable = ({ 
   items, 
@@ -58,6 +59,7 @@ const InventoryTable = ({
     return new Date(dateString).toLocaleDateString()
   }
 
+
   const canManageItem = () => {
     return ['admin', 'manager'].includes(currentUserRole)
   }
@@ -95,7 +97,12 @@ const InventoryTable = ({
                 <TableCell>
                   <div className="space-y-1">
                     <div className="font-medium text-gray-900">{item.itemDescription}</div>
-                    <div className="text-sm text-gray-500 font-mono">{item.itemCode}</div>
+                    <div 
+                      className="text-sm text-gray-500 font-mono cursor-help" 
+                      title={`Inventory Code: ${generateInventoryCode(item.category, item._id)} | MongoDB ID: ${item._id}`}
+                    >
+                      {generateInventoryCode(item.category, item._id)}
+                    </div>
                     <div className="flex items-center gap-2">
                       {getSubCategoryBadge(item.subCategory)}
                       {getGradeBadge(item.grade)}

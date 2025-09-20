@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import inventoryService from '@/services/inventoryService'
+import { generateInventoryCode } from '@/utils/inventoryUtils'
 
 const InventoryModal = ({ 
   isOpen, 
@@ -68,6 +69,7 @@ const InventoryModal = ({
   const [vendors, setVendors] = useState([])
   const [activeTab, setActiveTab] = useState('basic')
   const [initialLoading, setInitialLoading] = useState(false)
+
 
   // Load initial data
   useEffect(() => {
@@ -377,9 +379,18 @@ const InventoryModal = ({
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
       <div className="bg-white rounded-lg shadow-xl max-w-6xl w-full mx-4 max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between p-6 border-b">
-          <h2 className="text-xl font-semibold text-gray-900">
-            {isEditMode ? 'Edit Inventory Item' : 'Create New Inventory Item'}
-          </h2>
+          <div>
+            <h2 className="text-xl font-semibold text-gray-900">
+              {isEditMode ? 'Edit Inventory Item' : 'Create New Inventory Item'}
+            </h2>
+            {isEditMode && item && (
+              <div className="mt-1">
+                <span className="text-sm text-gray-500 font-mono bg-gray-100 px-2 py-1 rounded">
+                  {generateInventoryCode(item.category, item._id)}
+                </span>
+              </div>
+            )}
+          </div>
           <button 
             onClick={onClose}
             className="text-gray-400 hover:text-gray-600"

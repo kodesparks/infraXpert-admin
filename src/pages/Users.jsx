@@ -4,7 +4,8 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Badge } from '@/components/ui/badge'
-import { Plus, Search, Filter, RefreshCw } from 'lucide-react'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Plus, Search, Filter, RefreshCw, Users as UsersIcon, Building2, UserCheck, MapPin } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
 import userService from '@/services/userService'
 import UserModal from '@/components/user/UserModal'
@@ -23,6 +24,7 @@ const Users = () => {
   const [viewingUser, setViewingUser] = useState(null)
   const [activeTab, setActiveTab] = useState('employee') // employee | vendor | customer
   const [defaultRoleForModal, setDefaultRoleForModal] = useState('employee')
+  const [showVendorEmployeeModal, setShowVendorEmployeeModal] = useState(false)
   
   // Filters and pagination
   const [filters, setFilters] = useState({
@@ -167,139 +169,432 @@ const Users = () => {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold text-gray-900">User Management</h1>
-            <p className="text-gray-600 mt-1">Manage users, roles, and permissions</p>
+            <p className="text-gray-600 mt-1">Manage employees, vendors, customers and their details</p>
           </div>
-          {canCreateUser && (
-            <Button onClick={handleCreateUser} className="flex items-center gap-2">
-              <Plus className="h-4 w-4" />
-              {activeTab === 'employee' && 'Onboard Employee'}
-              {activeTab === 'vendor' && 'Onboard Vendor'}
-              {activeTab === 'customer' && 'Onboard Customer'}
-            </Button>
-          )}
-        </div>
-
-        {/* Tabs */}
-        <div className="flex items-center gap-2 border-b">
-          {[
-            { key: 'employee', label: 'Employee Onboard & View' },
-            { key: 'vendor', label: 'Vendor Onboard & View' },
-            { key: 'customer', label: 'Customer Onboard & View' }
-          ].map(tab => (
-            <button
-              key={tab.key}
-              onClick={() => setActiveTab(tab.key)}
-              className={`px-4 py-2 text-sm font-medium rounded-t-md ${activeTab === tab.key ? 'bg-white border border-b-0 border-gray-200' : 'text-gray-600 hover:text-gray-800'}`}
-            >
-              {tab.label}
-            </button>
-          ))}
         </div>
 
         {/* Stats */}
         <UserStats stats={stats} />
 
-        {/* Filters */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Filter className="h-5 w-5" />
-              Filters
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              <div className="relative">
-                <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                <Input
-                  placeholder="Search users..."
-                  value={filters.search}
-                  onChange={(e) => handleFilterChange('search', e.target.value)}
-                  className="pl-10"
-                />
-              </div>
-              
-              {/* Role controlled by tab */}
-              <div className="flex items-center text-sm text-gray-600">
-                <span className="px-3 py-2 border rounded-md bg-gray-50">Role: {filters.role}</span>
-              </div>
-              
-              {/* Vendor pincode filter */}
-              {activeTab === 'vendor' ? (
-                <Input
-                  placeholder="Filter by Pincode"
-                  value={filters.pincode}
-                  onChange={(e) => handleFilterChange('pincode', e.target.value)}
-                />
-              ) : (
-                <div />
-              )}
+        {/* Main Tabs */}
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <TabsList className="grid w-full grid-cols-3">
+            <TabsTrigger value="employee" className="flex items-center gap-2">
+              <UsersIcon className="h-4 w-4" />
+              Employee Onboard & View
+            </TabsTrigger>
+            <TabsTrigger value="vendor" className="flex items-center gap-2">
+              <Building2 className="h-4 w-4" />
+              Vendor Onboarding & Pincode
+            </TabsTrigger>
+            <TabsTrigger value="customer" className="flex items-center gap-2">
+              <UserCheck className="h-4 w-4" />
+              Customer Onboard & Details
+            </TabsTrigger>
+          </TabsList>
 
-              <Select value={filters.isActive} onValueChange={(value) => handleFilterChange('isActive', value)}>
-                <SelectTrigger>
-                  <SelectValue placeholder="All Status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Status</SelectItem>
-                  <SelectItem value="active">Active</SelectItem>
-                  <SelectItem value="inactive">Inactive</SelectItem>
-                </SelectContent>
-              </Select>
-              
-              <Button 
-                variant="outline" 
-                onClick={loadUsers}
-                disabled={loading}
-                className="flex items-center gap-2"
-              >
-                <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
-                Refresh
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Vendor tab: action to onboard vendor employee */}
-        {activeTab === 'vendor' && canCreateUser && (
-          <div className="flex justify-end">
-            <Button variant="secondary" onClick={() => { setDefaultRoleForModal('employee'); setEditingUser(null); setShowModal(true); }}>
-              Onboard Vendor Employee
-            </Button>
-          </div>
-        )}
-
-        {/* Users Table */}
-        <Card>
-          <CardHeader>
+          {/* Employee Tab */}
+          <TabsContent value="employee" className="space-y-6">
             <div className="flex items-center justify-between">
-              <CardTitle>Users ({pagination.totalUsers})</CardTitle>
+              <div>
+                <h2 className="text-xl font-semibold text-gray-900">Employee Management</h2>
+                <p className="text-gray-600">Onboard and manage company employees</p>
+              </div>
+              {canCreateUser && (
+                <Button onClick={handleCreateUser} className="flex items-center gap-2">
+                  <Plus className="h-4 w-4" />
+                  Onboard Employee
+                </Button>
+              )}
+            </div>
+
+            {/* Filters for Employee */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Filter className="h-5 w-5" />
+                  Employee Filters
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="relative">
+                    <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                    <Input
+                      placeholder="Search employees..."
+                      value={filters.search}
+                      onChange={(e) => handleFilterChange('search', e.target.value)}
+                      className="pl-10"
+                    />
+                  </div>
+                  
+                  <Select value={filters.isActive} onValueChange={(value) => handleFilterChange('isActive', value)}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="All Status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Status</SelectItem>
+                      <SelectItem value="active">Active</SelectItem>
+                      <SelectItem value="inactive">Inactive</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  
+                  <Button 
+                    variant="outline" 
+                    onClick={loadUsers}
+                    disabled={loading}
+                    className="flex items-center gap-2"
+                  >
+                    <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+                    Refresh
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Employee Table */}
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <CardTitle>Employees ({pagination.totalUsers})</CardTitle>
+                  <div className="flex items-center gap-2">
+                    <Badge variant="outline">
+                      Page {pagination.currentPage} of {pagination.totalPages}
+                    </Badge>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent>
+                {loading ? (
+                  <div className="flex items-center justify-center py-12">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                  </div>
+                ) : (
+                  <UserTable
+                    users={users}
+                    onEdit={handleEditUser}
+                    onDelete={handleDeleteUser}
+                    onView={handleViewUser}
+                    onStatusChange={handleStatusChange}
+                    onRoleChange={handleRoleChange}
+                    currentUserRole={currentUser?.role}
+                  />
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Vendor Tab */}
+          <TabsContent value="vendor" className="space-y-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-xl font-semibold text-gray-900">Vendor Management</h2>
+                <p className="text-gray-600">Onboard vendors with pincode coverage and manage vendor employees</p>
+              </div>
               <div className="flex items-center gap-2">
-                <Badge variant="outline">
-                  Page {pagination.currentPage} of {pagination.totalPages}
-                </Badge>
+                {canCreateUser && (
+                  <>
+                    <Button onClick={handleCreateUser} className="flex items-center gap-2">
+                      <Plus className="h-4 w-4" />
+                      Onboard Vendor
+                    </Button>
+                    <Button 
+                      variant="secondary" 
+                      onClick={() => {
+                        setDefaultRoleForModal('employee')
+                        setEditingUser(null)
+                        setShowModal(true)
+                      }}
+                      className="flex items-center gap-2"
+                    >
+                      <UserCheck className="h-4 w-4" />
+                      Onboard Vendor Employee
+                    </Button>
+                  </>
+                )}
               </div>
             </div>
-          </CardHeader>
-          <CardContent>
-            {loading ? (
-              <div className="flex items-center justify-center py-12">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-              </div>
-            ) : (
-              <UserTable
-                users={users}
-                onEdit={handleEditUser}
-                onDelete={handleDeleteUser}
-                onView={handleViewUser}
-                onStatusChange={handleStatusChange}
-                onRoleChange={handleRoleChange}
-                currentUserRole={currentUser?.role}
-              />
-            )}
-          </CardContent>
-        </Card>
 
-        {/* Pagination */}
+            {/* Vendor-specific features */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <MapPin className="h-5 w-5" />
+                    Pincode Coverage
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-sm text-gray-600 mb-4">Manage vendor service areas by pincode</p>
+                  <div className="space-y-2">
+                    <Input
+                      placeholder="Add pincode (e.g., 400001)"
+                      className="mb-2"
+                    />
+                    <Button size="sm" className="w-full">Add Pincode Coverage</Button>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Building2 className="h-5 w-5" />
+                    Vendor Statistics
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="text-center">
+                      <div className="text-2xl font-bold text-blue-600">
+                        {stats?.vendors || 0}
+                      </div>
+                      <div className="text-sm text-gray-600">Total Vendors</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-2xl font-bold text-green-600">
+                        {stats?.vendorEmployees || 0}
+                      </div>
+                      <div className="text-sm text-gray-600">Vendor Employees</div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Filters for Vendor */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Filter className="h-5 w-5" />
+                  Vendor Filters
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                  <div className="relative">
+                    <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                    <Input
+                      placeholder="Search vendors..."
+                      value={filters.search}
+                      onChange={(e) => handleFilterChange('search', e.target.value)}
+                      className="pl-10"
+                    />
+                  </div>
+                  
+                  <div className="relative">
+                    <MapPin className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                    <Input
+                      placeholder="Filter by Pincode"
+                      value={filters.pincode}
+                      onChange={(e) => handleFilterChange('pincode', e.target.value)}
+                      className="pl-10"
+                    />
+                  </div>
+
+                  <Select value={filters.isActive} onValueChange={(value) => handleFilterChange('isActive', value)}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="All Status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Status</SelectItem>
+                      <SelectItem value="active">Active</SelectItem>
+                      <SelectItem value="inactive">Inactive</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  
+                  <Button 
+                    variant="outline" 
+                    onClick={loadUsers}
+                    disabled={loading}
+                    className="flex items-center gap-2"
+                  >
+                    <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+                    Refresh
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Vendor Table */}
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <CardTitle>Vendors ({pagination.totalUsers})</CardTitle>
+                  <div className="flex items-center gap-2">
+                    <Badge variant="outline">
+                      Page {pagination.currentPage} of {pagination.totalPages}
+                    </Badge>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent>
+                {loading ? (
+                  <div className="flex items-center justify-center py-12">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                  </div>
+                ) : (
+                  <UserTable
+                    users={users}
+                    onEdit={handleEditUser}
+                    onDelete={handleDeleteUser}
+                    onView={handleViewUser}
+                    onStatusChange={handleStatusChange}
+                    onRoleChange={handleRoleChange}
+                    currentUserRole={currentUser?.role}
+                  />
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Customer Tab */}
+          <TabsContent value="customer" className="space-y-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-xl font-semibold text-gray-900">Customer Management</h2>
+                <p className="text-gray-600">Onboard customers and view their detailed information</p>
+              </div>
+              {canCreateUser && (
+                <Button onClick={handleCreateUser} className="flex items-center gap-2">
+                  <Plus className="h-4 w-4" />
+                  Onboard Customer
+                </Button>
+              )}
+            </div>
+
+            {/* Customer-specific features */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <UserCheck className="h-5 w-5" />
+                    Customer Overview
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-center">
+                    <div className="text-3xl font-bold text-blue-600">
+                      {stats?.customers || 0}
+                    </div>
+                    <div className="text-sm text-gray-600">Total Customers</div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <UsersIcon className="h-5 w-5" />
+                    Active Customers
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-center">
+                    <div className="text-3xl font-bold text-green-600">
+                      {stats?.activeCustomers || 0}
+                    </div>
+                    <div className="text-sm text-gray-600">Active Customers</div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Building2 className="h-5 w-5" />
+                    New This Month
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-center">
+                    <div className="text-3xl font-bold text-orange-600">
+                      {stats?.newCustomersThisMonth || 0}
+                    </div>
+                    <div className="text-sm text-gray-600">New This Month</div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Filters for Customer */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Filter className="h-5 w-5" />
+                  Customer Filters
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="relative">
+                    <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                    <Input
+                      placeholder="Search customers..."
+                      value={filters.search}
+                      onChange={(e) => handleFilterChange('search', e.target.value)}
+                      className="pl-10"
+                    />
+                  </div>
+                  
+                  <Select value={filters.isActive} onValueChange={(value) => handleFilterChange('isActive', value)}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="All Status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Status</SelectItem>
+                      <SelectItem value="active">Active</SelectItem>
+                      <SelectItem value="inactive">Inactive</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  
+                  <Button 
+                    variant="outline" 
+                    onClick={loadUsers}
+                    disabled={loading}
+                    className="flex items-center gap-2"
+                  >
+                    <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+                    Refresh
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Customer Table */}
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <CardTitle>Customers ({pagination.totalUsers})</CardTitle>
+                  <div className="flex items-center gap-2">
+                    <Badge variant="outline">
+                      Page {pagination.currentPage} of {pagination.totalPages}
+                    </Badge>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent>
+                {loading ? (
+                  <div className="flex items-center justify-center py-12">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                  </div>
+                ) : (
+                  <UserTable
+                    users={users}
+                    onEdit={handleEditUser}
+                    onDelete={handleDeleteUser}
+                    onView={handleViewUser}
+                    onStatusChange={handleStatusChange}
+                    onRoleChange={handleRoleChange}
+                    currentUserRole={currentUser?.role}
+                  />
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
+
+        {/* Pagination - Show for all tabs */}
         {pagination.totalPages > 1 && (
           <div className="flex items-center justify-center gap-2">
             <Button

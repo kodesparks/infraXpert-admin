@@ -158,7 +158,8 @@ const Orders = () => {
       delivered: { variant: 'secondary', className: 'bg-green-100 text-green-800' },
       truck_load: { variant: 'secondary', className: 'bg-blue-100 text-blue-800' },
       confirmed: { variant: 'secondary', className: 'bg-orange-100 text-orange-800' },
-      intransport: { variant: 'secondary', className: 'bg-yellow-100 text-yellow-800' }
+      intransport: { variant: 'secondary', className: 'bg-yellow-100 text-yellow-800' },
+      cancelled: { variant: 'secondary', className: 'bg-red-100 text-red-800' }
     }
     
     const config = statusConfig[status] || { variant: 'secondary', className: 'bg-gray-100 text-gray-800' }
@@ -257,6 +258,7 @@ const Orders = () => {
                     <SelectItem value="all">All Categories</SelectItem>
                     <SelectItem value="cement">Cement</SelectItem>
                     <SelectItem value="steel">Steel</SelectItem>
+                    <SelectItem value="concrete_mixer">Concrete Mixer</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -283,6 +285,7 @@ const Orders = () => {
                     <SelectItem value="truck_load">Truck Load</SelectItem>
                     <SelectItem value="intransport">In Transport</SelectItem>
                     <SelectItem value="delivered">Delivered</SelectItem>
+                    <SelectItem value="cancelled">Cancelled</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
