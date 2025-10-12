@@ -1,221 +1,255 @@
 import { useState, useEffect } from "react";
-import { X, Clock, CheckCircle, Truck, MapPin, Package } from "lucide-react";
+import { X, Clock, CheckCircle, Truck, MapPin, Package, DollarSign, AlertCircle, Loader2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
+import orderService from "@/services/orderService";
 
-const OrderDetailsModal = ({ isOpen, onClose, order }) => {
-  const [isEditMode, setIsEditMode] = useState(false);
-  const [editableData, setEditableData] = useState({
-    deliveryAddress: "123 Construction Site, Mumbai",
-    expectedDeliveryDate: "",
-    status: "",
-    remarks: "",
-    driverNumber: "",
-    truckNumber: "",
+const OrderDetailsModal = ({ isOpen, onClose, order, onOrderUpdate }) => {
+  const [orderDetails, setOrderDetails] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [actionLoading, setActionLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [activeTab, setActiveTab] = useState('details'); // details, payment, delivery, status
+
+  // Payment modal state
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [paymentData, setPaymentData] = useState({
+    paidAmount: '',
+    paymentMethod: 'bank_transfer',
+    transactionId: '',
+    paymentDate: new Date().toISOString().split('T')[0],
+    remarks: ''
+  });
+
+  // Delivery modal state
+  const [showDeliveryModal, setShowDeliveryModal] = useState(false);
+  const [deliveryData, setDeliveryData] = useState({
+    deliveryStatus: '',
+    trackingNumber: '',
+    courierService: '',
+    expectedDeliveryDate: '',
+    remarks: ''
+  });
+
+  // Status update state
+  const [showStatusModal, setShowStatusModal] = useState(false);
+  const [statusData, setStatusData] = useState({
+    orderStatus: '',
+    remarks: ''
+  });
+
+  // Cancel order state
+  const [showCancelModal, setShowCancelModal] = useState(false);
+  const [cancelData, setCancelData] = useState({
+    reason: '',
+    remarks: ''
   });
 
   useEffect(() => {
-    if (order) {
-      setEditableData({
-        deliveryAddress: "123 Construction Site, Mumbai",
-        expectedDeliveryDate: order.deliveryDate,
-        status: order.status,
-        remarks: "",
-        driverNumber: order.driverNumber || "",
-        truckNumber: order.truckNumber || order.vehicleNumber || "",
-      });
-      setIsEditMode(false); // Reset edit mode when order changes
+    if (isOpen && order) {
+      fetchOrderDetails();
     }
-  }, [order]);
+  }, [isOpen, order]);
 
-  if (!isOpen || !order) return null;
+  const fetchOrderDetails = async () => {
+    if (!order || !order.leadId) return;
 
-  // Check if order is within 48 hours
-  const isWithin48Hours = () => {
-    const orderDate = new Date(order.orderDate);
-    const currentDate = new Date();
-    const diffInHours = (currentDate - orderDate) / (1000 * 60 * 60);
-    return diffInHours <= 48;
-  };                              
+    try {
+      setLoading(true);
+      setError(null);
+      const response = await orderService.getOrderById(order.leadId);
+      setOrderDetails(response);
 
-  const canEdit = isWithin48Hours();
-
-  const handleEditMode = () => {
-    setIsEditMode(true);
-  };
-
-  const handleSaveChanges = () => {
-    // Here you would typically save to your backend
-    console.log("Saving changes:", editableData);
-    setIsEditMode(false);
-    // You could also show a success message here
-  };
-
-  const handleCancelEdit = () => {
-    // Reset to original values
-    setEditableData({
-      deliveryAddress: "123 Construction Site, Mumbai",
-      expectedDeliveryDate: order.deliveryDate,
-      status: order.status,
-      remarks: "",
-      driverNumber: order.driverNumber || "",
-      truckNumber: order.truckNumber || order.vehicleNumber || "",
-    });
-    setIsEditMode(false);
-  };
-
-  const handleInputChange = (field, value) => {
-    setEditableData((prev) => ({
-      ...prev,
-      [field]: value,
-    }));
-  };
-
-  // Order timeline data
-  const getOrderTimeline = () => {
-    const timeline = [
-      {
-        id: 'order_placed',
-        title: 'Order Placed',
-        description: 'Order has been confirmed and placed',
-        timestamp: order?.orderDate || '2024-01-15',
-        status: 'completed',
-        icon: CheckCircle
-      },
-      {
-        id: 'processing',
-        title: 'Processing',
-        description: 'Order is being prepared for shipment',
-        timestamp: order?.orderDate || '2024-01-15',
-        status: editableData.status === 'confirmed' ? 'current' : 'completed',
-        icon: Package
-      },
-      {
-        id: 'truck_load',
-        title: 'Truck Loading',
-        description: 'Items are being loaded onto the truck',
-        timestamp: editableData.status === 'truck_load' ? new Date().toISOString().split('T')[0] : null,
-        status: editableData.status === 'truck_load' ? 'current' : 
-                (['intransport', 'delivered'].includes(editableData.status) ? 'completed' : 'pending'),
-        icon: Truck
-      },
-      {
-        id: 'in_transit',
-        title: 'In Transit',
-        description: 'Order is on the way to destination',
-        timestamp: editableData.status === 'intransport' ? new Date().toISOString().split('T')[0] : null,
-        status: editableData.status === 'intransport' ? 'current' : 
-                (editableData.status === 'delivered' ? 'completed' : 'pending'),
-        icon: MapPin
-      },
-      {
-        id: 'delivered',
-        title: 'Delivered',
-        description: 'Order has been delivered successfully',
-        timestamp: editableData.status === 'delivered' ? new Date().toISOString().split('T')[0] : null,
-        status: editableData.status === 'delivered' ? 'completed' : 'pending',
-        icon: CheckCircle
+      // Set initial payment amount
+      if (response.order && !paymentData.paidAmount) {
+        setPaymentData(prev => ({
+          ...prev,
+          paidAmount: response.order.totalAmount
+        }));
       }
-    ];
+    } catch (err) {
+      console.error('Error fetching order details:', err);
+      setError(err.response?.data?.message || 'Failed to fetch order details');
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    // Add cancelled status if order is cancelled
-    if (editableData.status === 'cancelled') {
-      timeline.push({
-        id: 'cancelled',
-        title: 'Order Cancelled',
-        description: 'Order has been cancelled',
-        timestamp: new Date().toISOString().split('T')[0],
-        status: 'cancelled',
-        icon: X
+  const handleMarkPaymentDone = async () => {
+    try {
+      setActionLoading(true);
+      await orderService.markPaymentDone(order.leadId, paymentData);
+      alert('Payment marked as done successfully!');
+      setShowPaymentModal(false);
+      await fetchOrderDetails();
+      if (onOrderUpdate) onOrderUpdate();
+    } catch (err) {
+      console.error('Error marking payment:', err);
+      alert(err.response?.data?.message || 'Failed to mark payment');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleConfirmOrder = async () => {
+    if (!window.confirm('Are you sure you want to confirm this order?')) return;
+
+    try {
+      setActionLoading(true);
+      await orderService.confirmOrder(order.leadId, {
+        remarks: 'Order confirmed by admin after payment verification'
       });
-    }
-
-    return timeline;
-  };
-
-  const getTimelineIcon = (status, IconComponent) => {
-    const baseClasses = "w-5 h-5";
-    
-    switch (status) {
-      case 'completed':
-        return <CheckCircle className={`${baseClasses} text-green-600`} />;
-      case 'current':
-        return <IconComponent className={`${baseClasses} text-blue-600`} />;
-      case 'cancelled':
-        return <X className={`${baseClasses} text-red-600`} />;
-      default:
-        return <Clock className={`${baseClasses} text-gray-400`} />;
+      alert('Order confirmed successfully!');
+      await fetchOrderDetails();
+      if (onOrderUpdate) onOrderUpdate();
+    } catch (err) {
+      console.error('Error confirming order:', err);
+      alert(err.response?.data?.message || 'Failed to confirm order');
+    } finally {
+      setActionLoading(false);
     }
   };
 
-  const getTimelineStatusColor = (status) => {
-    switch (status) {
-      case 'completed':
-        return 'border-green-500 bg-green-50';
-      case 'current':
-        return 'border-blue-500 bg-blue-50';
-      case 'cancelled':
-        return 'border-red-500 bg-red-50';
-      default:
-        return 'border-gray-300 bg-gray-50';
+  const handleUpdateStatus = async () => {
+    try {
+      setActionLoading(true);
+      await orderService.updateOrderStatus(order.leadId, statusData);
+      alert('Order status updated successfully!');
+      setShowStatusModal(false);
+      await fetchOrderDetails();
+      if (onOrderUpdate) onOrderUpdate();
+    } catch (err) {
+      console.error('Error updating status:', err);
+      alert(err.response?.data?.message || 'Failed to update status');
+    } finally {
+      setActionLoading(false);
     }
+  };
+
+  const handleUpdateDelivery = async () => {
+    try {
+      setActionLoading(true);
+      await orderService.updateDelivery(order.leadId, deliveryData);
+      alert('Delivery information updated successfully!');
+      setShowDeliveryModal(false);
+      await fetchOrderDetails();
+      if (onOrderUpdate) onOrderUpdate();
+    } catch (err) {
+      console.error('Error updating delivery:', err);
+      alert(err.response?.data?.message || 'Failed to update delivery');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleMarkDelivered = async () => {
+    if (!window.confirm('Are you sure you want to mark this order as delivered?')) return;
+
+    try {
+      setActionLoading(true);
+      await orderService.markAsDelivered(order.leadId, {
+        deliveredDate: new Date().toISOString(),
+        receivedBy: 'Customer',
+        remarks: 'Order delivered successfully'
+      });
+      alert('Order marked as delivered successfully!');
+      await fetchOrderDetails();
+      if (onOrderUpdate) onOrderUpdate();
+    } catch (err) {
+      console.error('Error marking as delivered:', err);
+      alert(err.response?.data?.message || 'Failed to mark as delivered');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleCancelOrder = async () => {
+    if (!cancelData.reason) {
+      alert('Please provide a cancellation reason');
+      return;
+    }
+
+    try {
+      setActionLoading(true);
+      await orderService.cancelOrder(order.leadId, cancelData);
+      alert('Order cancelled successfully!');
+      setShowCancelModal(false);
+      await fetchOrderDetails();
+      if (onOrderUpdate) onOrderUpdate();
+    } catch (err) {
+      console.error('Error cancelling order:', err);
+      alert(err.response?.data?.message || 'Failed to cancel order');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const formatCurrency = (amount) => {
+    return new Intl.NumberFormat('en-IN', {
+      style: 'currency',
+      currency: 'INR',
+      minimumFractionDigits: 0
+    }).format(amount);
+  };
+
+  const formatDate = (dateString) => {
+    if (!dateString) return 'N/A';
+    return new Date(dateString).toLocaleDateString('en-IN', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
   };
 
   const getStatusBadge = (status) => {
     const statusConfig = {
-      delivered: "bg-green-100 text-green-800",
-      truck_load: "bg-blue-100 text-blue-800",
-      confirmed: "bg-orange-100 text-orange-800",
-      intransport: "bg-yellow-100 text-yellow-800",
-      cancelled: "bg-red-100 text-red-800",
+      pending: { className: 'bg-gray-100 text-gray-800' },
+      vendor_accepted: { className: 'bg-blue-100 text-blue-800' },
+      payment_done: { className: 'bg-purple-100 text-purple-800' },
+      order_confirmed: { className: 'bg-orange-100 text-orange-800' },
+      truck_loading: { className: 'bg-yellow-100 text-yellow-800' },
+      in_transit: { className: 'bg-indigo-100 text-indigo-800' },
+      shipped: { className: 'bg-cyan-100 text-cyan-800' },
+      out_for_delivery: { className: 'bg-teal-100 text-teal-800' },
+      delivered: { className: 'bg-green-100 text-green-800' },
+      cancelled: { className: 'bg-red-100 text-red-800' }
     };
 
-    const className = statusConfig[status] || "bg-gray-100 text-gray-800";
+    const config = statusConfig[status] || { className: 'bg-gray-100 text-gray-800' };
 
     return (
-      <span
-        className={`px-2 py-1 text-xs font-medium rounded-full ${className}`}
-      >
-        {status.replace("_", " ")}
-      </span>
+      <Badge className={config.className}>
+        {orderService.getStatusDisplayName(status)}
+      </Badge>
     );
   };
 
-  const getCategoryBadge = (category) => {
-    return (
-      <span className="px-2 py-1 text-xs font-medium bg-blue-100 text-blue-800 rounded-full capitalize">
-        {category}
-      </span>
-    );
-  };
-
-  const getPaymentTypeBadge = (paymentType) => {
-    return (
-      <span className="px-2 py-1 text-xs font-medium bg-purple-100 text-purple-800 rounded-full">
-        {paymentType}
-      </span>
-    );
-  };
-
-  const getPaymentStatusBadge = (status) => {
-    return (
-      <span className="px-2 py-1 text-xs font-medium bg-green-100 text-green-800 rounded-full">
-        {status}
-      </span>
-    );
-  };
+  if (!isOpen || !order) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto">
-        <div className="p-6 border-b flex items-center justify-between">
-          <div className="flex items-center space-x-3">
+    <>
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div className="bg-white rounded-lg shadow-xl max-w-6xl w-full max-h-[90vh] overflow-y-auto">
+          {/* Header */}
+          <div className="sticky top-0 bg-white border-b p-6 flex items-center justify-between z-10">
+            <div>
             <h3 className="text-xl font-semibold text-gray-900">
-              Order Details - {order.id}
+                Order Details - {orderDetails?.order?.formattedLeadId || order.formattedLeadId || order.leadId}
             </h3>
-            {canEdit && (
-              <span className="px-2 py-1 text-xs font-medium bg-green-100 text-green-800 rounded-full">
-                Editable
-              </span>
-            )}
+              <div className="flex items-center gap-2 mt-2">
+                {orderDetails?.order?.orderStatus && getStatusBadge(orderDetails.order.orderStatus)}
+                {orderDetails?.paymentInfo?.paymentStatus && (
+                  <Badge className={orderDetails.paymentInfo.paymentStatus === 'completed' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}>
+                    Payment: {orderDetails.paymentInfo.paymentStatus}
+                  </Badge>
+                )}
+              </div>
           </div>
           <button
             onClick={onClose}
@@ -225,378 +259,496 @@ const OrderDetailsModal = ({ isOpen, onClose, order }) => {
           </button>
         </div>
 
-        <div className="p-6">
-          {/* Order Timeline */}
-          <div className="mb-6">
-            <h4 className="text-lg font-medium text-gray-900 mb-4">Order Timeline</h4>
-            <div className="relative">
-              <div className="absolute left-4 top-0 bottom-0 w-0.5 bg-gray-200"></div>
-              <div className="space-y-4">
-                {getOrderTimeline().map((step, index) => {
-                  const IconComponent = step.icon;
-                  return (
-                    <div key={step.id} className="relative flex items-start">
-                      <div className={`relative z-10 flex items-center justify-center w-8 h-8 rounded-full border-2 ${getTimelineStatusColor(step.status)}`}>
-                        {getTimelineIcon(step.status, IconComponent)}
+          {loading ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+              <span className="ml-3 text-gray-600">Loading order details...</span>
                       </div>
-                      <div className="ml-4 flex-1">
-                        <div className="flex items-center justify-between">
-                          <h5 className={`text-sm font-medium ${
-                            step.status === 'completed' ? 'text-green-900' :
-                            step.status === 'current' ? 'text-blue-900' :
-                            step.status === 'cancelled' ? 'text-red-900' : 'text-gray-500'
-                          }`}>
-                            {step.title}
-                          </h5>
-                          {step.timestamp && (
-                            <span className="text-xs text-gray-500">
-                              {step.timestamp}
-                            </span>
-                          )}
+          ) : error ? (
+            <div className="text-center py-12">
+              <p className="text-red-600">{error}</p>
                         </div>
-                        <p className={`text-sm ${
-                          step.status === 'completed' ? 'text-green-700' :
-                          step.status === 'current' ? 'text-blue-700' :
-                          step.status === 'cancelled' ? 'text-red-700' : 'text-gray-500'
-                        }`}>
-                          {step.description}
-                        </p>
-                        {step.status === 'current' && (
-                          <div className="mt-2">
-                            <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                              In Progress
-                            </span>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
+          ) : (
+            <div className="p-6">
+              {/* Tabs */}
+              <div className="flex space-x-4 mb-6 border-b">
+                <button
+                  onClick={() => setActiveTab('details')}
+                  className={`pb-2 px-4 font-medium ${activeTab === 'details' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-600'}`}
+                >
+                  Order Details
+                </button>
+                <button
+                  onClick={() => setActiveTab('payment')}
+                  className={`pb-2 px-4 font-medium ${activeTab === 'payment' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-600'}`}
+                >
+                  Payment Info
+                </button>
+                <button
+                  onClick={() => setActiveTab('status')}
+                  className={`pb-2 px-4 font-medium ${activeTab === 'status' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-600'}`}
+                >
+                  Status History
+                </button>
           </div>
 
+              {/* Tab Content */}
+              {activeTab === 'details' && (
+                <div className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="space-y-6">
-              <div>
-                <h4 className="text-lg font-medium text-gray-900 mb-4">
-                  Order Information
-                </h4>
-                <div className="space-y-3">
+                    {/* Order Information */}
+                    <div className="space-y-4">
+                      <h4 className="text-lg font-medium text-gray-900">Order Information</h4>
+                      <div className="space-y-3 bg-gray-50 p-4 rounded-lg">
                   <div className="flex justify-between">
                     <span className="text-sm text-gray-600">Lead ID:</span>
-                    <span className="text-sm font-medium text-gray-900">
-                      {order.id}
-                    </span>
+                          <span className="text-sm font-medium text-gray-900">{orderDetails?.order?.formattedLeadId}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-sm text-gray-600">
-                      Invoice Number:
-                    </span>
-                    <span className="text-sm font-medium text-gray-900">
-                      {order.invoice}
-                    </span>
+                          <span className="text-sm text-gray-600">Invoice Number:</span>
+                          <span className="text-sm font-medium text-gray-900">{orderDetails?.order?.invcNum}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-sm text-gray-600">Sub Invoice:</span>
-                    <span className="text-sm font-medium text-gray-900">
-                      {order.subInvoice}
-                    </span>
+                          <span className="text-sm text-gray-600">Order Date:</span>
+                          <span className="text-sm font-medium text-gray-900">{formatDate(orderDetails?.order?.orderDate)}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-sm text-gray-600">Brand:</span>
-                    <span className="px-2 py-1 text-xs font-medium bg-purple-100 text-purple-800 rounded-full">
-                      {order.brand}
-                    </span>
+                          <span className="text-sm text-gray-600">Total Quantity:</span>
+                          <span className="text-sm font-medium text-gray-900">{orderDetails?.order?.totalQty}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-sm text-gray-600">Category:</span>
-                    {getCategoryBadge(order.category)}
+                          <span className="text-sm text-gray-600">Total Amount:</span>
+                          <span className="text-sm font-bold text-gray-900">{formatCurrency(orderDetails?.order?.totalAmount)}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-sm text-gray-600">Sub Category:</span>
-                    <span className="px-2 py-1 text-xs font-medium bg-indigo-100 text-indigo-800 rounded-full">
-                      {order.subCategory}
-                    </span>
+                          <span className="text-sm text-gray-600">Status:</span>
+                          {orderDetails?.order?.orderStatus && getStatusBadge(orderDetails.order.orderStatus)}
+                  </div>
+                  </div>
+                  </div>
+
+                    {/* Customer Information */}
+                    <div className="space-y-4">
+                      <h4 className="text-lg font-medium text-gray-900">Customer Information</h4>
+                      <div className="space-y-3 bg-gray-50 p-4 rounded-lg">
+                  <div className="flex justify-between">
+                          <span className="text-sm text-gray-600">Name:</span>
+                          <span className="text-sm font-medium text-gray-900">{orderDetails?.order?.custUserId?.name}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-sm text-gray-600">Grade:</span>
-                    <span className="px-2 py-1 text-xs font-medium bg-teal-100 text-teal-800 rounded-full">
-                      {order.grade}
-                    </span>
+                          <span className="text-sm text-gray-600">Email:</span>
+                          <span className="text-sm font-medium text-gray-900">{orderDetails?.order?.custUserId?.email}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-sm text-gray-600">Quantity:</span>
-                    <span className="text-sm font-medium text-gray-900">
-                      {order.quantity}
-                    </span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-sm text-gray-600">Price:</span>
-                    <span className="text-sm font-medium text-gray-900">
-                      {order.price}
-                    </span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-sm text-gray-600">Order Date:</span>
-                    <span className="text-sm font-medium text-gray-900">
-                      {order.orderDate}
-                    </span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-sm text-gray-600">Status:</span>
-                    <select
-                      value={editableData.status}
-                      onChange={(e) =>
-                        handleInputChange("status", e.target.value)
-                      }
-                      className="border border-gray-300 rounded-lg px-3 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    >
-                      <option value="confirmed">Confirmed</option>
-                      <option value="truck_load">Truck Load</option>
-                      <option value="intransport">In Transport</option>
-                      <option value="delivered">Delivered</option>
-                      <option value="cancelled">Cancelled</option>
-                    </select>
-                  </div>
+                          <span className="text-sm text-gray-600">Phone:</span>
+                          <span className="text-sm font-medium text-gray-900">{orderDetails?.order?.custUserId?.phone}</span>
                 </div>
               </div>
 
-              <div>
-                <h4 className="text-lg font-medium text-gray-900 mb-4">
-                  Contact Information
-                </h4>
-                <div className="space-y-3">
+                      <h4 className="text-lg font-medium text-gray-900 mt-4">Vendor Information</h4>
+                      <div className="space-y-3 bg-gray-50 p-4 rounded-lg">
+                        <div className="flex justify-between">
+                          <span className="text-sm text-gray-600">Name:</span>
+                          <span className="text-sm font-medium text-gray-900">{orderDetails?.order?.vendorId?.name}</span>
+                        </div>
                   <div className="flex justify-between">
-                    <span className="text-sm text-gray-600">
-                      Customer Name:
-                    </span>
-                    <span className="text-sm font-medium text-gray-900">
-                      {order.customerName}
-                    </span>
+                          <span className="text-sm text-gray-600">Email:</span>
+                          <span className="text-sm font-medium text-gray-900">{orderDetails?.order?.vendorId?.email}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-sm text-gray-600">
-                      Receiver Contact:
-                    </span>
-                    <span className="text-sm font-medium text-gray-900">
-                      +91 8765432109
-                    </span>
+                          <span className="text-sm text-gray-600">Company:</span>
+                          <span className="text-sm font-medium text-gray-900">{orderDetails?.order?.vendorId?.companyName}</span>
                   </div>
                 </div>
               </div>
             </div>
 
-            <div className="space-y-6">
-              <div>
-                <h4 className="text-lg font-medium text-gray-900 mb-4">
-                  Delivery Information
-                </h4>
-                <div className="space-y-3">
+                  {/* Order Items */}
                   <div>
-                    <span className="text-sm text-gray-600">
-                      Delivery Address:
-                    </span>
-                    {isEditMode && canEdit ? (
-                      <textarea
-                        value={editableData.deliveryAddress}
-                        onChange={(e) =>
-                          handleInputChange("deliveryAddress", e.target.value)
-                        }
-                        className="w-full mt-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                        rows="2"
-                      />
-                    ) : (
-                      <p className="text-sm font-medium text-gray-900 mt-1">
-                        {editableData.deliveryAddress}
-                      </p>
+                    <h4 className="text-lg font-medium text-gray-900 mb-4">Order Items</h4>
+                    <div className="border rounded-lg overflow-hidden">
+                      <table className="min-w-full divide-y divide-gray-200">
+                        <thead className="bg-gray-50">
+                          <tr>
+                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Item</th>
+                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Category</th>
+                            <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Qty</th>
+                            <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Unit Price</th>
+                            <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Total</th>
+                          </tr>
+                        </thead>
+                        <tbody className="bg-white divide-y divide-gray-200">
+                          {orderDetails?.order?.items?.map((item, index) => (
+                            <tr key={index}>
+                              <td className="px-4 py-3 text-sm text-gray-900">
+                                {item.itemCode?.itemDescription}
+                                {item.itemCode?.primaryImage && (
+                                  <img src={item.itemCode.primaryImage} alt="" className="w-12 h-12 object-cover rounded mt-1" />
+                                )}
+                              </td>
+                              <td className="px-4 py-3 text-sm text-gray-600">
+                                <Badge className="bg-blue-100 text-blue-800">{item.itemCode?.category}</Badge>
+                              </td>
+                              <td className="px-4 py-3 text-sm text-right text-gray-900">{item.qty}</td>
+                              <td className="px-4 py-3 text-sm text-right text-gray-900">{formatCurrency(item.unitPrice)}</td>
+                              <td className="px-4 py-3 text-sm text-right font-medium text-gray-900">{formatCurrency(item.totalCost)}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+
+                  {/* Delivery Address */}
+                  <div>
+                    <h4 className="text-lg font-medium text-gray-900 mb-4">Delivery Address</h4>
+                    <div className="bg-gray-50 p-4 rounded-lg">
+                      <p className="text-sm text-gray-900">{orderDetails?.order?.deliveryAddress}</p>
+                      <p className="text-sm text-gray-600 mt-1">Pincode: {orderDetails?.order?.deliveryPincode}</p>
+                      {orderDetails?.order?.deliveryExpectedDate && (
+                        <p className="text-sm text-gray-600 mt-1">Expected Delivery: {formatDate(orderDetails.order.deliveryExpectedDate)}</p>
                     )}
                   </div>
-                  <div className="flex justify-between">
-                    <span className="text-sm text-gray-600">
-                      Expected Delivery Date:
-                    </span>
-                    {isEditMode && canEdit ? (
-                      <input
-                        type="date"
-                        value={editableData.expectedDeliveryDate}
-                        onChange={(e) =>
-                          handleInputChange(
-                            "expectedDeliveryDate",
-                            e.target.value
-                          )
-                        }
-                        className="border border-gray-300 rounded-lg px-3 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      />
-                    ) : (
-                      <span className="text-sm font-medium text-gray-900">
-                        {editableData.expectedDeliveryDate}
-                      </span>
-                    )}
                   </div>
-                  <div className="flex justify-between items-center gap-3">
-                    <span className="text-sm text-gray-600">Driver Number:</span>
-                    <input
-                      type="tel"
-                      value={editableData.driverNumber}
-                      onChange={(e) => handleInputChange("driverNumber", e.target.value)}
-                      className="border border-gray-300 rounded-lg px-3 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent w-44 md:w-56"
-                      placeholder="+91 9876543210"
-                    />
                   </div>
-                  <div className="flex justify-between items-center gap-3">
-                    <span className="text-sm text-gray-600">Truck Number:</span>
-                    <input
-                      type="text"
-                      value={editableData.truckNumber}
-                      onChange={(e) => handleInputChange("truckNumber", e.target.value)}
-                      className="border border-gray-300 rounded-lg px-3 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent w-44 md:w-56"
-                      placeholder="e.g., MH-01-AB-1234"
-                    />
+              )}
+
+              {activeTab === 'payment' && (
+                <div className="space-y-6">
+                  <div className="bg-gray-50 p-6 rounded-lg">
+                    <h4 className="text-lg font-medium text-gray-900 mb-4">Payment Information</h4>
+                    <div className="space-y-3">
+                      <div className="flex justify-between">
+                        <span className="text-sm text-gray-600">Total Amount:</span>
+                        <span className="text-sm font-bold text-gray-900">{formatCurrency(orderDetails?.paymentInfo?.totalAmount)}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-sm text-gray-600">Paid Amount:</span>
+                        <span className="text-sm font-medium text-gray-900">{formatCurrency(orderDetails?.paymentInfo?.paidAmount)}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-sm text-gray-600">Payment Status:</span>
+                        <Badge className={orderDetails?.paymentInfo?.paymentStatus === 'completed' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}>
+                          {orderDetails?.paymentInfo?.paymentStatus || 'Pending'}
+                        </Badge>
+                      </div>
+                      {orderDetails?.paymentInfo?.paymentMethod && (
+                        <div className="flex justify-between">
+                          <span className="text-sm text-gray-600">Payment Method:</span>
+                          <span className="text-sm font-medium text-gray-900">{orderDetails.paymentInfo.paymentMethod}</span>
+                        </div>
+                      )}
+                      {orderDetails?.paymentInfo?.transactionId && (
+                        <div className="flex justify-between">
+                          <span className="text-sm text-gray-600">Transaction ID:</span>
+                          <span className="text-sm font-medium text-gray-900">{orderDetails.paymentInfo.transactionId}</span>
+                        </div>
+                      )}
+                    </div>
                   </div>
-                  {editableData.status === "intransport" && (
+
+                  {orderDetails?.paymentInfo?.paymentStatus !== 'completed' && orderDetails?.order?.orderStatus === 'vendor_accepted' && (
+                    <div className="bg-yellow-50 border border-yellow-200 p-4 rounded-lg">
+                      <div className="flex items-start">
+                        <AlertCircle className="w-5 h-5 text-yellow-600 mr-3 mt-0.5" />
+                        <div>
+                          <h5 className="font-medium text-yellow-900">Payment Pending</h5>
+                          <p className="text-sm text-yellow-700 mt-1">
+                            Customer needs to complete payment. Once payment is received, mark it as done below.
+                          </p>
+                          <Button
+                            onClick={() => setShowPaymentModal(true)}
+                            className="mt-3 bg-green-600 hover:bg-green-700"
+                            size="sm"
+                          >
+                            <DollarSign className="w-4 h-4 mr-2" />
+                            Mark Payment Done
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {activeTab === 'status' && (
+                <div className="space-y-6">
+                  <div className="bg-gray-50 p-6 rounded-lg">
+                    <h4 className="text-lg font-medium text-gray-900 mb-4">Status History</h4>
+                    <div className="space-y-4">
+                      {orderDetails?.statusHistory?.map((history, index) => (
+                        <div key={index} className="flex items-start border-l-2 border-blue-500 pl-4 py-2">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2">
+                              {getStatusBadge(history.orderStatus)}
+                              <span className="text-xs text-gray-500">{formatDate(history.updateDate)}</span>
+                            </div>
+                            {history.remarks && (
+                              <p className="text-sm text-gray-600 mt-1">{history.remarks}</p>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Action Buttons */}
+              <div className="mt-8 pt-6 border-t flex items-center justify-between">
+                <div className="flex gap-3">
+                  {orderDetails?.order?.orderStatus === 'payment_done' && (
+                    <Button
+                      onClick={handleConfirmOrder}
+                      className="bg-green-600 hover:bg-green-700"
+                      disabled={actionLoading}
+                    >
+                      <CheckCircle className="w-4 h-4 mr-2" />
+                      Confirm Order
+                    </Button>
+                  )}
+                  {orderDetails?.order?.orderStatus !== 'delivered' && orderDetails?.order?.orderStatus !== 'cancelled' && (
                     <>
-                      <div className="flex justify-between">
-                        <span className="text-sm text-gray-600">
-                          Driver Name:
-                        </span>
-                        <span className="text-sm font-medium text-gray-900">
-                          Rajesh Kumar
-                        </span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-sm text-gray-600">
-                          Driver Number:
-                        </span>
-                        <span className="text-sm font-medium text-gray-900">
-                          +91 9876543210
-                        </span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-sm text-gray-600">
-                          Vehicle Number:
-                        </span>
-                        <span className="text-sm font-medium text-gray-900">
-                          MH-01-AB-1234
-                        </span>
-                      </div>
+                      <Button
+                        onClick={() => setShowStatusModal(true)}
+                        variant="outline"
+                      >
+                        Update Status
+                      </Button>
+                      <Button
+                        onClick={() => setShowCancelModal(true)}
+                        className="bg-red-600 hover:bg-red-700"
+                      >
+                        Cancel Order
+                      </Button>
                     </>
                   )}
                 </div>
-              </div>
-
-              <div>
-                <h4 className="text-lg font-medium text-gray-900 mb-4">
-                  Payment Details
-                </h4>
-                <div className="space-y-3">
-                  <div className="flex justify-between">
-                    <span className="text-sm text-gray-600">
-                      Transaction ID:
-                    </span>
-                    <span className="text-sm font-medium text-gray-900">
-                      TXN-789123
-                    </span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-sm text-gray-600">Payment Type:</span>
-                    {getPaymentTypeBadge("RTGS")}
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-sm text-gray-600">Amount:</span>
-                    <span className="text-sm font-medium text-gray-900">
-                      {order.price}
-                    </span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-sm text-gray-600">
-                      Payment Status:
-                    </span>
-                    {getPaymentStatusBadge("completed")}
-                  </div>
-                </div>
-              </div>
-
-              <div>
-                <h4 className="text-lg font-medium text-gray-900 mb-4">
-                  Remarks
-                </h4>
-                <div>
-                  <textarea
-                    value={editableData.remarks}
-                    onChange={(e) =>
-                      handleInputChange("remarks", e.target.value)
-                    }
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    rows="4"
-                    placeholder="Enter any remarks or notes about this order..."
-                  />
-                  <div className="mt-2 flex justify-end">
-                    <button
-                      onClick={() => {
-                        console.log("Saving remarks:", editableData.remarks);
-                        // Here you would typically save to your backend
-                        alert("Remarks saved successfully!");
-                      }}
-                      className="px-3 py-1 bg-green-600 text-white text-sm rounded-md hover:bg-green-700 transition-colors"
-                    >
-                      Save Remarks
-                    </button>
-                  </div>
-                </div>
+                <Button onClick={onClose} variant="outline">
+                  Close
+                </Button>
               </div>
             </div>
-          </div>
-
-          <div className="mt-6 pt-6 border-t flex justify-between items-center">
-            <button
-              onClick={onClose}
-              className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 whitespace-nowrap cursor-pointer"
-            >
-              Cancel
-            </button>
-            
-            <div className="flex space-x-3">
-              {isEditMode ? (
-                <>
-                  <button
-                    onClick={handleCancelEdit}
-                    className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 whitespace-nowrap cursor-pointer"
-                  >
-                    Cancel Edit
-                  </button>
-                  <button
-                    onClick={handleSaveChanges}
-                    className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 whitespace-nowrap cursor-pointer"
-                  >
-                    Save Changes
-                  </button>
-                </>
-              ) : (
-                <>
-                  {canEdit ? (
-                    <button
-                      onClick={handleEditMode}
-                      className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 whitespace-nowrap cursor-pointer"
-                    >
-                      Update Order
-                    </button>
-                  ) : (
-                    <button
-                      disabled
-                      className="px-4 py-2 bg-gray-400 text-white rounded-lg cursor-not-allowed whitespace-nowrap"
-                      title="Order is older than 48 hours and cannot be updated"
-                    >
-                      Update Order
-                    </button>
                   )}
-                </>
-              )}
+                </div>
+              </div>
+
+      {/* Payment Modal */}
+      {showPaymentModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[60] p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
+            <h3 className="text-lg font-semibold mb-4">Mark Payment as Done</h3>
+            <div className="space-y-4">
+              <div>
+                <Label>Paid Amount</Label>
+                <Input
+                  type="number"
+                  value={paymentData.paidAmount}
+                  onChange={(e) => setPaymentData({ ...paymentData, paidAmount: e.target.value })}
+                />
+              </div>
+              <div>
+                <Label>Payment Method</Label>
+                <Select value={paymentData.paymentMethod} onValueChange={(value) => setPaymentData({ ...paymentData, paymentMethod: value })}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="bank_transfer">Bank Transfer</SelectItem>
+                    <SelectItem value="upi">UPI</SelectItem>
+                    <SelectItem value="cash">Cash</SelectItem>
+                    <SelectItem value="cheque">Cheque</SelectItem>
+                    <SelectItem value="card">Card</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label>Transaction ID</Label>
+                <Input
+                  type="text"
+                  value={paymentData.transactionId}
+                  onChange={(e) => setPaymentData({ ...paymentData, transactionId: e.target.value })}
+                />
+              </div>
+              <div>
+                <Label>Payment Date</Label>
+                <Input
+                  type="date"
+                  value={paymentData.paymentDate}
+                  onChange={(e) => setPaymentData({ ...paymentData, paymentDate: e.target.value })}
+                />
+              </div>
+              <div>
+                <Label>Remarks</Label>
+                <Textarea
+                  value={paymentData.remarks}
+                  onChange={(e) => setPaymentData({ ...paymentData, remarks: e.target.value })}
+                  rows={3}
+                />
+                  </div>
+                  </div>
+            <div className="flex gap-3 mt-6">
+              <Button onClick={handleMarkPaymentDone} className="flex-1 bg-green-600 hover:bg-green-700" disabled={actionLoading}>
+                {actionLoading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <CheckCircle className="w-4 h-4 mr-2" />}
+                Confirm Payment
+              </Button>
+              <Button onClick={() => setShowPaymentModal(false)} variant="outline" className="flex-1">
+                Cancel
+              </Button>
+                  </div>
+                  </div>
+                </div>
+      )}
+
+      {/* Delivery Modal */}
+      {showDeliveryModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[60] p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
+            <h3 className="text-lg font-semibold mb-4">Update Delivery Information</h3>
+            <div className="space-y-4">
+              <div>
+                <Label>Delivery Status</Label>
+                <Select value={deliveryData.deliveryStatus} onValueChange={(value) => setDeliveryData({ ...deliveryData, deliveryStatus: value })}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="pending">Pending</SelectItem>
+                    <SelectItem value="in_transit">In Transit</SelectItem>
+                    <SelectItem value="out_for_delivery">Out for Delivery</SelectItem>
+                    <SelectItem value="delivered">Delivered</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label>Tracking Number</Label>
+                <Input
+                  type="text"
+                  value={deliveryData.trackingNumber}
+                  onChange={(e) => setDeliveryData({ ...deliveryData, trackingNumber: e.target.value })}
+                />
+              </div>
+                <div>
+                <Label>Courier Service</Label>
+                <Input
+                  type="text"
+                  value={deliveryData.courierService}
+                  onChange={(e) => setDeliveryData({ ...deliveryData, courierService: e.target.value })}
+                  placeholder="e.g., Blue Dart, DTDC"
+                />
+                  </div>
+              <div>
+                <Label>Expected Delivery Date</Label>
+                <Input
+                  type="date"
+                  value={deliveryData.expectedDeliveryDate}
+                  onChange={(e) => setDeliveryData({ ...deliveryData, expectedDeliveryDate: e.target.value })}
+                />
+                </div>
+              <div>
+                <Label>Remarks</Label>
+                <Textarea
+                  value={deliveryData.remarks}
+                  onChange={(e) => setDeliveryData({ ...deliveryData, remarks: e.target.value })}
+                  rows={3}
+                />
+              </div>
+            </div>
+            <div className="flex gap-3 mt-6">
+              <Button onClick={handleUpdateDelivery} className="flex-1" disabled={actionLoading}>
+                {actionLoading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Truck className="w-4 h-4 mr-2" />}
+                Update Delivery
+              </Button>
+              <Button onClick={() => setShowDeliveryModal(false)} variant="outline" className="flex-1">
+                Cancel
+              </Button>
             </div>
           </div>
         </div>
+      )}
+
+      {/* Status Update Modal */}
+      {showStatusModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[60] p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
+            <h3 className="text-lg font-semibold mb-4">Update Order Status</h3>
+            <div className="space-y-4">
+              <div>
+                <Label>New Status</Label>
+                <Select value={statusData.orderStatus} onValueChange={(value) => setStatusData({ ...statusData, orderStatus: value })}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {orderService.getAllowedStatuses().map(status => (
+                      <SelectItem key={status} value={status}>
+                        {orderService.getStatusDisplayName(status)}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label>Remarks</Label>
+                <Textarea
+                  value={statusData.remarks}
+                  onChange={(e) => setStatusData({ ...statusData, remarks: e.target.value })}
+                  rows={3}
+                  placeholder="Enter reason for status change"
+                />
+              </div>
+            </div>
+            <div className="flex gap-3 mt-6">
+              <Button onClick={handleUpdateStatus} className="flex-1" disabled={actionLoading}>
+                {actionLoading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <CheckCircle className="w-4 h-4 mr-2" />}
+                Update Status
+              </Button>
+              <Button onClick={() => setShowStatusModal(false)} variant="outline" className="flex-1">
+              Cancel
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Cancel Order Modal */}
+      {showCancelModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[60] p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
+            <h3 className="text-lg font-semibold mb-4 text-red-600">Cancel Order</h3>
+            <div className="space-y-4">
+              <div>
+                <Label>Cancellation Reason *</Label>
+                <Input
+                  type="text"
+                  value={cancelData.reason}
+                  onChange={(e) => setCancelData({ ...cancelData, reason: e.target.value })}
+                  placeholder="e.g., Customer requested cancellation"
+                />
+              </div>
+              <div>
+                <Label>Additional Remarks</Label>
+                <Textarea
+                  value={cancelData.remarks}
+                  onChange={(e) => setCancelData({ ...cancelData, remarks: e.target.value })}
+                  rows={3}
+                  placeholder="Any additional details..."
+                />
+              </div>
+            </div>
+            <div className="flex gap-3 mt-6">
+              <Button onClick={handleCancelOrder} className="flex-1 bg-red-600 hover:bg-red-700" disabled={actionLoading}>
+                {actionLoading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <X className="w-4 h-4 mr-2" />}
+                Cancel Order
+              </Button>
+              <Button onClick={() => setShowCancelModal(false)} variant="outline" className="flex-1">
+                Go Back
+              </Button>
+        </div>
       </div>
     </div>
+      )}
+    </>
   );
 };
 
