@@ -24,6 +24,7 @@ const Users = () => {
   const [viewingUser, setViewingUser] = useState(null)
   const [activeTab, setActiveTab] = useState('employee') // employee | vendor | customer
   const [defaultRoleForModal, setDefaultRoleForModal] = useState('employee')
+  const [modalRole, setModalRole] = useState('employee')
   const [showVendorEmployeeModal, setShowVendorEmployeeModal] = useState(false)
   
   // Filters and pagination
@@ -201,7 +202,14 @@ const Users = () => {
                 <p className="text-gray-600">Onboard and manage company employees</p>
               </div>
               {canCreateUser && (
-                <Button onClick={handleCreateUser} className="flex items-center gap-2">
+                <Button 
+                  onClick={() => {
+                    setModalRole('employee')
+                    setEditingUser(null)
+                    setShowModal(true)
+                  }}
+                  className="flex items-center gap-2"
+                >
                   <Plus className="h-4 w-4" />
                   Onboard Employee
                 </Button>
@@ -294,14 +302,21 @@ const Users = () => {
               <div className="flex items-center gap-2">
                 {canCreateUser && (
                   <>
-                    <Button onClick={handleCreateUser} className="flex items-center gap-2">
+                    <Button 
+                      onClick={() => {
+                        setModalRole('vendor')
+                        setEditingUser(null)
+                        setShowModal(true)
+                      }}
+                      className="flex items-center gap-2"
+                    >
                       <Plus className="h-4 w-4" />
                       Onboard Vendor
                     </Button>
                     <Button 
                       variant="secondary" 
                       onClick={() => {
-                        setDefaultRoleForModal('employee')
+                        setModalRole('employee')
                         setEditingUser(null)
                         setShowModal(true)
                       }}
@@ -456,7 +471,14 @@ const Users = () => {
                 <p className="text-gray-600">Onboard customers and view their detailed information</p>
               </div>
               {canCreateUser && (
-                <Button onClick={handleCreateUser} className="flex items-center gap-2">
+                <Button 
+                  onClick={() => {
+                    setModalRole('customer')
+                    setEditingUser(null)
+                    setShowModal(true)
+                  }}
+                  className="flex items-center gap-2"
+                >
                   <Plus className="h-4 w-4" />
                   Onboard Customer
                 </Button>
@@ -622,12 +644,13 @@ const Users = () => {
 
       {/* User Modal */}
       <UserModal
+        key={`${modalRole}-${showModal}`}
         isOpen={showModal}
         onClose={() => setShowModal(false)}
         onSubmit={handleSubmitUser}
         user={editingUser}
         isEditMode={!!editingUser}
-        defaultRole={!editingUser ? defaultRoleForModal : undefined}
+        defaultRole={!editingUser ? modalRole : undefined}
       />
     </div>
   )

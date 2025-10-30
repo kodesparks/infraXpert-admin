@@ -44,7 +44,7 @@ class InventoryService {
     }
   }
 
-  // Create new inventory item
+  // Create new inventory item with warehouse selection and pricing
   async createInventoryItem(itemData) {
     try {
       const response = await apiClient.post('/api/inventory', itemData)
@@ -136,10 +136,13 @@ class InventoryService {
     }
   }
 
-  // Pricing Management
-  async createOrUpdatePrice(priceData) {
+  // Pricing Management (Updated for direct inventory pricing)
+  async updateInventoryPricing(itemId, pricingData) {
     try {
-      const response = await apiClient.post('/api/inventory/price', priceData)
+      const response = await apiClient.post('/api/inventory/price', {
+        itemId,
+        pricing: pricingData
+      })
       return response.data
     } catch (error) {
       throw error
@@ -279,6 +282,68 @@ class InventoryService {
       if (params.search) queryParams.append('search', params.search)
       
       const response = await apiClient.get(`/api/inventory/vendors?${queryParams.toString()}`)
+      return response.data
+    } catch (error) {
+      throw error
+    }
+  }
+
+  // Warehouse Management
+  async getAvailableWarehouses() {
+    try {
+      const response = await apiClient.get('/api/warehouse/available')
+      return response.data
+    } catch (error) {
+      throw error
+    }
+  }
+
+  async updateVendorWarehouse(vendorId, warehouseData) {
+    try {
+      const response = await apiClient.put(`/api/warehouse/vendor/${vendorId}`, warehouseData)
+      return response.data
+    } catch (error) {
+      throw error
+    }
+  }
+
+  // Customer-facing inventory with pricing
+  async getInventoryWithPricing(params = {}) {
+    try {
+      const queryParams = new URLSearchParams()
+      
+      if (params.pincode) queryParams.append('pincode', params.pincode)
+      if (params.page) queryParams.append('page', params.page)
+      if (params.limit) queryParams.append('limit', params.limit)
+      if (params.category) queryParams.append('category', params.category)
+      if (params.subCategory) queryParams.append('subCategory', params.subCategory)
+      if (params.search) queryParams.append('search', params.search)
+      
+      const response = await apiClient.get(`/api/inventory/pricing?${queryParams.toString()}`)
+      return response.data
+    } catch (error) {
+      throw error
+    }
+  }
+
+  // Get single item with pricing (customer API)
+  async getSingleItemWithPricing(itemId, params = {}) {
+    try {
+      const queryParams = new URLSearchParams()
+      
+      if (params.pincode) queryParams.append('pincode', params.pincode)
+      
+      const response = await apiClient.get(`/api/inventory/pricing/${itemId}?${queryParams.toString()}`)
+      return response.data
+    } catch (error) {
+      throw error
+    }
+  }
+
+  // Get inventory statistics
+  async getInventoryStats() {
+    try {
+      const response = await apiClient.get('/api/inventory/stats/overview')
       return response.data
     } catch (error) {
       throw error

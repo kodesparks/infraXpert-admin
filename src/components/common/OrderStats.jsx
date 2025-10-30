@@ -32,14 +32,14 @@ const OrderStats = () => {
       setLoading(true);
       setError(null);
 
-      const [orderStats, paymentStats, deliveryStats] = await Promise.all([
-        orderService.getOrderStats(),
+      // Only fetch available stats APIs
+      const [paymentStats, deliveryStats] = await Promise.all([
         orderService.getPaymentStats(),
         orderService.getDeliveryStats()
       ]);
 
       setStats({
-        orders: orderStats.stats,
+        orders: null, // Order stats API not available
         payments: paymentStats.stats,
         deliveries: deliveryStats.stats
       });
@@ -97,6 +97,9 @@ const OrderStats = () => {
                 <p className="text-2xl font-bold text-gray-900 mt-2">
                   {formatNumber(stats.orders?.totalOrders || 0)}
                 </p>
+                {!stats.orders && (
+                  <p className="text-xs text-gray-500 mt-1">API not available</p>
+                )}
               </div>
               <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
                 <ShoppingCart className="w-6 h-6 text-blue-600" />
@@ -114,6 +117,9 @@ const OrderStats = () => {
                 <p className="text-2xl font-bold text-gray-900 mt-2">
                   {formatCurrency(stats.orders?.totalRevenue || 0)}
                 </p>
+                {!stats.orders && (
+                  <p className="text-xs text-gray-500 mt-1">API not available</p>
+                )}
               </div>
               <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
                 <DollarSign className="w-6 h-6 text-green-600" />
@@ -169,21 +175,28 @@ const OrderStats = () => {
           <CardTitle className="text-lg font-semibold">Order Status Breakdown</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-            {stats.orders?.statusBreakdown?.map((status) => (
-              <div key={status._id} className="bg-gray-50 p-4 rounded-lg">
-                <div className="flex items-center justify-between mb-2">
-                  <Badge className={getStatusBadgeColor(status._id)}>
-                    {orderService.getStatusDisplayName(status._id)}
-                  </Badge>
+          {stats.orders?.statusBreakdown ? (
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+              {stats.orders.statusBreakdown.map((status) => (
+                <div key={status._id} className="bg-gray-50 p-4 rounded-lg">
+                  <div className="flex items-center justify-between mb-2">
+                    <Badge className={getStatusBadgeColor(status._id)}>
+                      {orderService.getStatusDisplayName(status._id)}
+                    </Badge>
+                  </div>
+                  <p className="text-xl font-bold text-gray-900">{status.count}</p>
+                  <p className="text-xs text-gray-600 mt-1">
+                    {formatCurrency(status.totalAmount)}
+                  </p>
                 </div>
-                <p className="text-xl font-bold text-gray-900">{status.count}</p>
-                <p className="text-xs text-gray-600 mt-1">
-                  {formatCurrency(status.totalAmount)}
-                </p>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-8">
+              <p className="text-gray-500">Order status breakdown not available</p>
+              <p className="text-sm text-gray-400 mt-1">API endpoint not implemented</p>
+            </div>
+          )}
         </CardContent>
       </Card>
 

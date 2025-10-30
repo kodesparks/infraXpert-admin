@@ -14,7 +14,8 @@ import {
   CheckCircle,
   AlertCircle,
   Pickaxe,
-  Calendar
+  Calendar,
+  Building
 } from 'lucide-react'
 const Home = () => {
   // Date range state
@@ -253,6 +254,17 @@ const Home = () => {
                   <Users className="text-white w-6 h-6" />
                 </div>
                 <h3 className="font-medium text-gray-900">User Management</h3>
+              </CardContent>
+            </Card>
+          </Link>
+
+          <Link to="/warehouses">
+            <Card className="hover:shadow-md transition-shadow cursor-pointer">
+              <CardContent className="p-6">
+                <div className="w-12 h-12 bg-orange-500 rounded-lg flex items-center justify-center mb-4">
+                  <Building className="text-white w-6 h-6" />
+                </div>
+                <h3 className="font-medium text-gray-900">Warehouse Management</h3>
               </CardContent>
             </Card>
           </Link>

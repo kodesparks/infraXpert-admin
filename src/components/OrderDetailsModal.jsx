@@ -25,14 +25,20 @@ const OrderDetailsModal = ({ isOpen, onClose, order, onOrderUpdate }) => {
     remarks: ''
   });
 
-  // Delivery modal state
+  // Delivery modal state (admin sees unmasked delivery object)
   const [showDeliveryModal, setShowDeliveryModal] = useState(false);
   const [deliveryData, setDeliveryData] = useState({
     deliveryStatus: '',
-    trackingNumber: '',
-    courierService: '',
-    expectedDeliveryDate: '',
-    remarks: ''
+    driverName: '',
+    driverPhone: '',
+    driverLicenseNo: '',
+    truckNumber: '',
+    vehicleType: '',
+    capacityTons: '',
+    startTime: '',
+    estimatedArrival: '',
+    lastLocation: { lat: '', lng: '', address: '' },
+    deliveryNotes: ''
   });
 
   // Status update state
@@ -63,6 +69,27 @@ const OrderDetailsModal = ({ isOpen, onClose, order, onOrderUpdate }) => {
       setError(null);
       const response = await orderService.getOrderById(order.leadId);
       setOrderDetails(response);
+
+      // Prime delivery modal data from response (admin gets unmasked order.delivery)
+      const d = response?.order?.delivery || {};
+      setDeliveryData(prev => ({
+        ...prev,
+        deliveryStatus: d.deliveryStatus || response?.deliveryInfo?.deliveryStatus || response?.order?.orderStatus || '',
+        driverName: d.driverName || '',
+        driverPhone: d.driverPhone || '',
+        driverLicenseNo: d.driverLicenseNo || '',
+        truckNumber: d.truckNumber || '',
+        vehicleType: d.vehicleType || '',
+        capacityTons: d.capacityTons ?? '',
+        startTime: d.startTime ? new Date(d.startTime).toISOString().slice(0,16) : '',
+        estimatedArrival: d.estimatedArrival ? new Date(d.estimatedArrival).toISOString().slice(0,16) : '',
+        lastLocation: {
+          lat: d.lastLocation?.lat ?? '',
+          lng: d.lastLocation?.lng ?? '',
+          address: d.lastLocation?.address || ''
+        },
+        deliveryNotes: d.deliveryNotes || ''
+      }));
 
       // Set initial payment amount
       if (response.order && !paymentData.paidAmount) {
@@ -133,7 +160,58 @@ const OrderDetailsModal = ({ isOpen, onClose, order, onOrderUpdate }) => {
   const handleUpdateDelivery = async () => {
     try {
       setActionLoading(true);
-      await orderService.updateDelivery(order.leadId, deliveryData);
+
+      // Validation
+      if (deliveryData.driverPhone) {
+        const phone = String(deliveryData.driverPhone).trim();
+        const phoneOk = /^\+?[0-9]{10,15}$/.test(phone) || /^[0-9]{10}$/.test(phone);
+        if (!phoneOk) {
+          alert('Driver phone must be 10 digits or E.164');
+          setActionLoading(false);
+          return;
+        }
+      }
+      const reqTruck = ['truck_loading','in_transit','out_for_delivery','delivered'];
+      if (reqTruck.includes(deliveryData.deliveryStatus) && !deliveryData.truckNumber) {
+        alert('Truck number is required when status is Truck loading/In transit/Out for delivery/Delivered');
+        setActionLoading(false);
+        return;
+      }
+      const hasLat = deliveryData.lastLocation?.lat !== '' && deliveryData.lastLocation?.lat !== null && deliveryData.lastLocation?.lat !== undefined;
+      const hasLng = deliveryData.lastLocation?.lng !== '' && deliveryData.lastLocation?.lng !== null && deliveryData.lastLocation?.lng !== undefined;
+      if ((hasLat && !hasLng) || (!hasLat && hasLng)) {
+        alert('Provide both latitude and longitude for last location');
+        setActionLoading(false);
+        return;
+      }
+
+      // Build partial payload
+      const payload = {};
+      const assignIf = (key, val) => { if (val !== '' && val !== null && val !== undefined) payload[key] = val; };
+      assignIf('deliveryStatus', deliveryData.deliveryStatus);
+      assignIf('driverName', deliveryData.driverName);
+      assignIf('driverPhone', deliveryData.driverPhone);
+      assignIf('driverLicenseNo', deliveryData.driverLicenseNo);
+      assignIf('truckNumber', deliveryData.truckNumber);
+      assignIf('vehicleType', deliveryData.vehicleType);
+      if (deliveryData.capacityTons !== '' && !Number.isNaN(parseFloat(deliveryData.capacityTons))) {
+        payload.capacityTons = parseFloat(deliveryData.capacityTons);
+      }
+      if (deliveryData.startTime) {
+        payload.startTime = new Date(deliveryData.startTime).toISOString();
+      }
+      if (deliveryData.estimatedArrival) {
+        payload.estimatedArrival = new Date(deliveryData.estimatedArrival).toISOString();
+      }
+      if (hasLat && hasLng || deliveryData.lastLocation?.address) {
+        payload.lastLocation = {}
+        if (hasLat) payload.lastLocation.lat = parseFloat(deliveryData.lastLocation.lat)
+        if (hasLng) payload.lastLocation.lng = parseFloat(deliveryData.lastLocation.lng)
+        if (deliveryData.lastLocation.address) payload.lastLocation.address = deliveryData.lastLocation.address
+      }
+      assignIf('deliveryNotes', deliveryData.deliveryNotes);
+
+      await orderService.updateDelivery(order.leadId, payload);
       alert('Delivery information updated successfully!');
       setShowDeliveryModal(false);
       await fetchOrderDetails();
@@ -210,7 +288,8 @@ const OrderDetailsModal = ({ isOpen, onClose, order, onOrderUpdate }) => {
   const getStatusBadge = (status) => {
     const statusConfig = {
       pending: { className: 'bg-gray-100 text-gray-800' },
-      vendor_accepted: { className: 'bg-blue-100 text-blue-800' },
+      order_placed: { className: 'bg-blue-100 text-blue-800' },
+      vendor_accepted: { className: 'bg-green-100 text-green-800' },
       payment_done: { className: 'bg-purple-100 text-purple-800' },
       order_confirmed: { className: 'bg-orange-100 text-orange-800' },
       truck_loading: { className: 'bg-yellow-100 text-yellow-800' },
@@ -234,21 +313,19 @@ const OrderDetailsModal = ({ isOpen, onClose, order, onOrderUpdate }) => {
 
   return (
     <>
-      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-        <div className="bg-white rounded-lg shadow-xl max-w-6xl w-full max-h-[90vh] overflow-y-auto">
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[100] p-4">
+        <div className="bg-white rounded-lg shadow-xl max-w-6xl w-full max-h-[90vh] overflow-y-auto relative z-[101]">
           {/* Header */}
           <div className="sticky top-0 bg-white border-b p-6 flex items-center justify-between z-10">
             <div>
             <h3 className="text-xl font-semibold text-gray-900">
-                Order Details - {orderDetails?.order?.formattedLeadId || order.formattedLeadId || order.leadId}
+                Order Details - {orderDetails?.order?.formattedLeadId || orderDetails?.order?.leadId || order.formattedLeadId || order.leadId}
             </h3>
               <div className="flex items-center gap-2 mt-2">
                 {orderDetails?.order?.orderStatus && getStatusBadge(orderDetails.order.orderStatus)}
-                {orderDetails?.paymentInfo?.paymentStatus && (
-                  <Badge className={orderDetails.paymentInfo.paymentStatus === 'completed' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}>
-                    Payment: {orderDetails.paymentInfo.paymentStatus}
-                  </Badge>
-                )}
+                <Badge className={orderDetails?.paymentInfo?.paymentStatus === 'completed' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}>
+                  Payment: {orderDetails?.paymentInfo?.paymentStatus || 'Pending'}
+                </Badge>
               </div>
           </div>
           <button
@@ -310,13 +387,19 @@ const OrderDetailsModal = ({ isOpen, onClose, order, onOrderUpdate }) => {
                   </div>
                   <div className="flex justify-between">
                           <span className="text-sm text-gray-600">Order Date:</span>
-                          <span className="text-sm font-medium text-gray-900">{formatDate(orderDetails?.order?.orderDate)}</span>
+                          <span className="text-sm font-medium text-gray-900">{formatDate(orderDetails?.order?.createdAt || orderDetails?.order?.orderDate)}</span>
                   </div>
                   <div className="flex justify-between">
                           <span className="text-sm text-gray-600">Total Quantity:</span>
-                          <span className="text-sm font-medium text-gray-900">{orderDetails?.order?.totalQty}</span>
-                  </div>
-                  <div className="flex justify-between">
+                          <span className="text-sm font-medium text-gray-900">{orderDetails?.order?.items?.reduce((sum, item) => sum + (item.quantity || 0), 0) || orderDetails?.order?.totalQty}</span>
+                        </div>
+                        {orderDetails?.order?.deliveryCharges && (
+                          <div className="flex justify-between">
+                            <span className="text-sm text-gray-600">Delivery Charges:</span>
+                            <span className="text-sm font-medium text-gray-900">{formatCurrency(orderDetails.order.deliveryCharges)}</span>
+                          </div>
+                        )}
+                        <div className="flex justify-between">
                           <span className="text-sm text-gray-600">Total Amount:</span>
                           <span className="text-sm font-bold text-gray-900">{formatCurrency(orderDetails?.order?.totalAmount)}</span>
                   </div>
@@ -333,32 +416,86 @@ const OrderDetailsModal = ({ isOpen, onClose, order, onOrderUpdate }) => {
                       <div className="space-y-3 bg-gray-50 p-4 rounded-lg">
                   <div className="flex justify-between">
                           <span className="text-sm text-gray-600">Name:</span>
-                          <span className="text-sm font-medium text-gray-900">{orderDetails?.order?.custUserId?.name}</span>
+                          <span className="text-sm font-medium text-gray-900">{orderDetails?.order?.customer?.name || orderDetails?.order?.custUserId?.name}</span>
                   </div>
                   <div className="flex justify-between">
                           <span className="text-sm text-gray-600">Email:</span>
-                          <span className="text-sm font-medium text-gray-900">{orderDetails?.order?.custUserId?.email}</span>
+                          <span className="text-sm font-medium text-gray-900">{orderDetails?.order?.customer?.email || orderDetails?.order?.custUserId?.email}</span>
                   </div>
                   <div className="flex justify-between">
                           <span className="text-sm text-gray-600">Phone:</span>
-                          <span className="text-sm font-medium text-gray-900">{orderDetails?.order?.custUserId?.phone}</span>
-                </div>
-              </div>
+                          <span className="text-sm font-medium text-gray-900">{orderDetails?.order?.customer?.phone || orderDetails?.order?.custUserId?.phone}</span>
+                        </div>
+                      </div>
 
                       <h4 className="text-lg font-medium text-gray-900 mt-4">Vendor Information</h4>
                       <div className="space-y-3 bg-gray-50 p-4 rounded-lg">
                         <div className="flex justify-between">
                           <span className="text-sm text-gray-600">Name:</span>
-                          <span className="text-sm font-medium text-gray-900">{orderDetails?.order?.vendorId?.name}</span>
-                        </div>
+                          <span className="text-sm font-medium text-gray-900">{orderDetails?.order?.vendor?.name || orderDetails?.order?.vendorId?.name}</span>
+                  </div>
                   <div className="flex justify-between">
                           <span className="text-sm text-gray-600">Email:</span>
-                          <span className="text-sm font-medium text-gray-900">{orderDetails?.order?.vendorId?.email}</span>
+                          <span className="text-sm font-medium text-gray-900">{orderDetails?.order?.vendor?.email || orderDetails?.order?.vendorId?.email}</span>
+                  </div>
+                        <div className="flex justify-between">
+                          <span className="text-sm text-gray-600">Company:</span>
+                          <span className="text-sm font-medium text-gray-900">{orderDetails?.order?.vendor?.companyName || orderDetails?.order?.vendorId?.companyName}</span>
+                </div>
+              </div>
+
+                      <h4 className="text-lg font-medium text-gray-900 mt-4">Delivery (In-house)</h4>
+                      <div className="space-y-3 bg-gray-50 p-4 rounded-lg">
+                        {(() => { const d = orderDetails?.order?.delivery || orderDetails?.deliveryInfo || {}; return (
+                          <>
+                            <div className="flex justify-between">
+                              <span className="text-sm text-gray-600">Delivery Status:</span>
+                              <span className="text-sm font-medium text-gray-900">{d.deliveryStatus || orderDetails?.order?.orderStatus || '—'}</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-sm text-gray-600">Driver:</span>
+                              <span className="text-sm font-medium text-gray-900">{d.driverName || '—'}</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-sm text-gray-600">Driver Phone:</span>
+                              <span className="text-sm font-medium text-gray-900">{d.driverPhone || '—'}</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-sm text-gray-600">License No:</span>
+                              <span className="text-sm font-medium text-gray-900">{d.driverLicenseNo || '—'}</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-sm text-gray-600">Truck Number:</span>
+                              <span className="text-sm font-medium text-gray-900">{d.truckNumber || '—'}</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-sm text-gray-600">Vehicle Type:</span>
+                              <span className="text-sm font-medium text-gray-900">{d.vehicleType || '—'}</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-sm text-gray-600">Capacity (Tons):</span>
+                              <span className="text-sm font-medium text-gray-900">{(d.capacityTons ?? '—').toString()}</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-sm text-gray-600">Start Time:</span>
+                              <span className="text-sm font-medium text-gray-900">{d.startTime ? formatDate(d.startTime) : '—'}</span>
+                            </div>
+                  <div className="flex justify-between">
+                              <span className="text-sm text-gray-600">ETA:</span>
+                              <span className="text-sm font-medium text-gray-900">{d.estimatedArrival ? formatDate(d.estimatedArrival) : '—'}</span>
                   </div>
                   <div className="flex justify-between">
-                          <span className="text-sm text-gray-600">Company:</span>
-                          <span className="text-sm font-medium text-gray-900">{orderDetails?.order?.vendorId?.companyName}</span>
+                              <span className="text-sm text-gray-600">Last Location:</span>
+                              <span className="text-sm font-medium text-gray-900">{d.lastLocation?.address || '—'}</span>
+                            </div>
+                            {d.deliveryNotes && (
+                              <div className="flex justify-between">
+                                <span className="text-sm text-gray-600">Notes:</span>
+                                <span className="text-sm font-medium text-gray-900">{d.deliveryNotes}</span>
                   </div>
+                            )}
+                          </>
+                        )})()}
                 </div>
               </div>
             </div>
@@ -381,17 +518,17 @@ const OrderDetailsModal = ({ isOpen, onClose, order, onOrderUpdate }) => {
                           {orderDetails?.order?.items?.map((item, index) => (
                             <tr key={index}>
                               <td className="px-4 py-3 text-sm text-gray-900">
-                                {item.itemCode?.itemDescription}
+                                {item.itemDescription || item.itemCode?.itemDescription}
                                 {item.itemCode?.primaryImage && (
                                   <img src={item.itemCode.primaryImage} alt="" className="w-12 h-12 object-cover rounded mt-1" />
                                 )}
                               </td>
                               <td className="px-4 py-3 text-sm text-gray-600">
-                                <Badge className="bg-blue-100 text-blue-800">{item.itemCode?.category}</Badge>
+                                <Badge className="bg-blue-100 text-blue-800">{item.category || item.itemCode?.category}</Badge>
                               </td>
-                              <td className="px-4 py-3 text-sm text-right text-gray-900">{item.qty}</td>
+                              <td className="px-4 py-3 text-sm text-right text-gray-900">{item.quantity || item.qty}</td>
                               <td className="px-4 py-3 text-sm text-right text-gray-900">{formatCurrency(item.unitPrice)}</td>
-                              <td className="px-4 py-3 text-sm text-right font-medium text-gray-900">{formatCurrency(item.totalCost)}</td>
+                              <td className="px-4 py-3 text-sm text-right font-medium text-gray-900">{formatCurrency(item.totalPrice || item.totalCost)}</td>
                             </tr>
                           ))}
                         </tbody>
@@ -420,11 +557,11 @@ const OrderDetailsModal = ({ isOpen, onClose, order, onOrderUpdate }) => {
                     <div className="space-y-3">
                       <div className="flex justify-between">
                         <span className="text-sm text-gray-600">Total Amount:</span>
-                        <span className="text-sm font-bold text-gray-900">{formatCurrency(orderDetails?.paymentInfo?.totalAmount)}</span>
+                        <span className="text-sm font-bold text-gray-900">{formatCurrency(orderDetails?.paymentInfo?.totalAmount || orderDetails?.order?.totalAmount)}</span>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-sm text-gray-600">Paid Amount:</span>
-                        <span className="text-sm font-medium text-gray-900">{formatCurrency(orderDetails?.paymentInfo?.paidAmount)}</span>
+                        <span className="text-sm font-medium text-gray-900">{formatCurrency(orderDetails?.paymentInfo?.paidAmount || 0)}</span>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-sm text-gray-600">Payment Status:</span>
@@ -444,10 +581,16 @@ const OrderDetailsModal = ({ isOpen, onClose, order, onOrderUpdate }) => {
                           <span className="text-sm font-medium text-gray-900">{orderDetails.paymentInfo.transactionId}</span>
                         </div>
                       )}
+                      {!orderDetails?.paymentInfo && (
+                        <div className="text-center py-4 text-gray-500">
+                          <p>No payment information available yet.</p>
+                          <p className="text-sm mt-1">Payment details will appear here once payment is processed.</p>
+                        </div>
+                      )}
                     </div>
                   </div>
 
-                  {orderDetails?.paymentInfo?.paymentStatus !== 'completed' && orderDetails?.order?.orderStatus === 'vendor_accepted' && (
+                  {orderDetails?.paymentInfo?.paymentStatus !== 'completed' && (orderDetails?.order?.orderStatus === 'vendor_accepted' || orderDetails?.order?.orderStatus === 'order_placed') && (
                     <div className="bg-yellow-50 border border-yellow-200 p-4 rounded-lg">
                       <div className="flex items-start">
                         <AlertCircle className="w-5 h-5 text-yellow-600 mr-3 mt-0.5" />
@@ -535,8 +678,8 @@ const OrderDetailsModal = ({ isOpen, onClose, order, onOrderUpdate }) => {
 
       {/* Payment Modal */}
       {showPaymentModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[60] p-4">
-          <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[110] p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6 relative z-[111]">
             <h3 className="text-lg font-semibold mb-4">Mark Payment as Done</h3>
             <div className="space-y-4">
               <div>
@@ -553,7 +696,7 @@ const OrderDetailsModal = ({ isOpen, onClose, order, onOrderUpdate }) => {
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="z-[120]">
                     <SelectItem value="bank_transfer">Bank Transfer</SelectItem>
                     <SelectItem value="upi">UPI</SelectItem>
                     <SelectItem value="cash">Cash</SelectItem>
@@ -602,8 +745,8 @@ const OrderDetailsModal = ({ isOpen, onClose, order, onOrderUpdate }) => {
 
       {/* Delivery Modal */}
       {showDeliveryModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[60] p-4">
-          <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[110] p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6 relative z-[111]">
             <h3 className="text-lg font-semibold mb-4">Update Delivery Information</h3>
             <div className="space-y-4">
               <div>
@@ -612,46 +755,65 @@ const OrderDetailsModal = ({ isOpen, onClose, order, onOrderUpdate }) => {
                   <SelectTrigger>
                     <SelectValue placeholder="Select status" />
                   </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="pending">Pending</SelectItem>
+                  <SelectContent className="z-[120]">
+                    <SelectItem value="order_confirmed">Order Confirmed</SelectItem>
+                    <SelectItem value="truck_loading">Truck Loading</SelectItem>
                     <SelectItem value="in_transit">In Transit</SelectItem>
                     <SelectItem value="out_for_delivery">Out for Delivery</SelectItem>
                     <SelectItem value="delivered">Delivered</SelectItem>
+                    <SelectItem value="cancelled">Cancelled</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
-              <div>
-                <Label>Tracking Number</Label>
-                <Input
-                  type="text"
-                  value={deliveryData.trackingNumber}
-                  onChange={(e) => setDeliveryData({ ...deliveryData, trackingNumber: e.target.value })}
-                />
-              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                <Label>Courier Service</Label>
-                <Input
-                  type="text"
-                  value={deliveryData.courierService}
-                  onChange={(e) => setDeliveryData({ ...deliveryData, courierService: e.target.value })}
-                  placeholder="e.g., Blue Dart, DTDC"
-                />
-                  </div>
-              <div>
-                <Label>Expected Delivery Date</Label>
-                <Input
-                  type="date"
-                  value={deliveryData.expectedDeliveryDate}
-                  onChange={(e) => setDeliveryData({ ...deliveryData, expectedDeliveryDate: e.target.value })}
-                />
+                  <Label>Driver Name</Label>
+                  <Input value={deliveryData.driverName} onChange={e => setDeliveryData({ ...deliveryData, driverName: e.target.value })} />
+                </div>
+                <div>
+                  <Label>Driver Phone</Label>
+                  <Input value={deliveryData.driverPhone} onChange={e => setDeliveryData({ ...deliveryData, driverPhone: e.target.value })} placeholder="10-digit or +E.164" />
+                </div>
+                <div>
+                  <Label>Driver License No</Label>
+                  <Input value={deliveryData.driverLicenseNo} onChange={e => setDeliveryData({ ...deliveryData, driverLicenseNo: e.target.value })} />
+                </div>
+                <div>
+                  <Label>Truck Number</Label>
+                  <Input value={deliveryData.truckNumber} onChange={e => setDeliveryData({ ...deliveryData, truckNumber: e.target.value })} placeholder="e.g., TS09AB1234" />
+                </div>
+                <div>
+                  <Label>Vehicle Type</Label>
+                  <Input value={deliveryData.vehicleType} onChange={e => setDeliveryData({ ...deliveryData, vehicleType: e.target.value })} placeholder="e.g., 12T Truck" />
+                </div>
+                <div>
+                  <Label>Capacity (Tons)</Label>
+                  <Input type="number" step="any" value={deliveryData.capacityTons} onChange={e => setDeliveryData({ ...deliveryData, capacityTons: e.target.value })} />
+                </div>
+                <div>
+                  <Label>Start Time</Label>
+                  <Input type="datetime-local" value={deliveryData.startTime} onChange={e => setDeliveryData({ ...deliveryData, startTime: e.target.value })} />
+                </div>
+                <div>
+                  <Label>Estimated Arrival</Label>
+                  <Input type="datetime-local" value={deliveryData.estimatedArrival} onChange={e => setDeliveryData({ ...deliveryData, estimatedArrival: e.target.value })} />
                 </div>
               <div>
-                <Label>Remarks</Label>
-                <Textarea
-                  value={deliveryData.remarks}
-                  onChange={(e) => setDeliveryData({ ...deliveryData, remarks: e.target.value })}
-                  rows={3}
-                />
+                  <Label>Last Location Latitude</Label>
+                  <Input type="number" step="any" value={deliveryData.lastLocation.lat} onChange={e => setDeliveryData({ ...deliveryData, lastLocation: { ...deliveryData.lastLocation, lat: e.target.value } })} />
+                </div>
+                <div>
+                  <Label>Last Location Longitude</Label>
+                  <Input type="number" step="any" value={deliveryData.lastLocation.lng} onChange={e => setDeliveryData({ ...deliveryData, lastLocation: { ...deliveryData.lastLocation, lng: e.target.value } })} />
+                </div>
+                <div className="md:col-span-2">
+                  <Label>Last Location Address</Label>
+                  <Input value={deliveryData.lastLocation.address} onChange={e => setDeliveryData({ ...deliveryData, lastLocation: { ...deliveryData.lastLocation, address: e.target.value } })} />
+                  </div>
+                <div className="md:col-span-2">
+                  <Label>Delivery Notes</Label>
+                  <Textarea rows={3} value={deliveryData.deliveryNotes} onChange={e => setDeliveryData({ ...deliveryData, deliveryNotes: e.target.value })} />
+                </div>
               </div>
             </div>
             <div className="flex gap-3 mt-6">
@@ -669,8 +831,8 @@ const OrderDetailsModal = ({ isOpen, onClose, order, onOrderUpdate }) => {
 
       {/* Status Update Modal */}
       {showStatusModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[60] p-4">
-          <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[110] p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6 relative z-[111]">
             <h3 className="text-lg font-semibold mb-4">Update Order Status</h3>
             <div className="space-y-4">
               <div>
@@ -679,8 +841,8 @@ const OrderDetailsModal = ({ isOpen, onClose, order, onOrderUpdate }) => {
                   <SelectTrigger>
                     <SelectValue placeholder="Select status" />
                   </SelectTrigger>
-                  <SelectContent>
-                    {orderService.getAllowedStatuses().map(status => (
+                  <SelectContent className="z-[120]">
+                    {orderService.getAllowedStatuses(orderDetails?.order?.orderStatus || 'pending').map(status => (
                       <SelectItem key={status} value={status}>
                         {orderService.getStatusDisplayName(status)}
                       </SelectItem>
@@ -713,8 +875,8 @@ const OrderDetailsModal = ({ isOpen, onClose, order, onOrderUpdate }) => {
 
       {/* Cancel Order Modal */}
       {showCancelModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[60] p-4">
-          <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[110] p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6 relative z-[111]">
             <h3 className="text-lg font-semibold mb-4 text-red-600">Cancel Order</h3>
             <div className="space-y-4">
               <div>

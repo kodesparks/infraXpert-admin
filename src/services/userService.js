@@ -111,6 +111,66 @@ class UserService {
       throw error
     }
   }
+
+  // Vendor-specific methods (for backward compatibility)
+  async getVendors(params = {}) {
+    return this.getUsers({ ...params, role: 'vendor' })
+  }
+
+  async createVendor(vendorData) {
+    return this.createUser({ ...vendorData, role: 'vendor' })
+  }
+
+  async getVendor(vendorId) {
+    return this.getUserById(vendorId)
+  }
+
+  async updateVendor(vendorId, vendorData) {
+    return this.updateUser(vendorId, vendorData)
+  }
+
+  async deleteVendor(vendorId) {
+    return this.deleteUser(vendorId)
+  }
+
+  // Warehouse Management
+  async getAvailableWarehouses() {
+    try {
+      const response = await apiClient.get('/api/warehouse/available')
+      return response.data
+    } catch (error) {
+      throw error
+    }
+  }
+
+  async getWarehouseByVendor(vendorId) {
+    try {
+      const response = await apiClient.get(`/api/warehouse/vendor/${vendorId}`)
+      return response.data
+    } catch (error) {
+      throw error
+    }
+  }
+
+  async updateVendorWarehouse(vendorId, warehouseData) {
+    try {
+      const response = await apiClient.put(`/api/warehouse/vendor/${vendorId}`, warehouseData)
+      return response.data
+    } catch (error) {
+      throw error
+    }
+  }
+
+  async verifyWarehouse(vendorId, isVerified = true) {
+    try {
+      const response = await apiClient.put(`/api/warehouse/vendor/${vendorId}`, {
+        isVerified
+      })
+      return response.data
+    } catch (error) {
+      throw error
+    }
+  }
 }
 
 export default new UserService()

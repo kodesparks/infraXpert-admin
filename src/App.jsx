@@ -5,6 +5,7 @@ import MainLayout from '@/layouts/MainLayout'
 import Home from '@/pages/Home'
 import Orders from '@/pages/Orders'
 import Inventory from '@/pages/Inventory'
+import Warehouses from '@/pages/Warehouses'
 import Users from '@/pages/Users'
 import Reports from '@/pages/Reports'
 import GenerateLead from '@/pages/GenerateLead'
@@ -33,6 +34,7 @@ const AuthenticatedRoutes = () => {
         <Route path="orders" element={<Orders />} />
         <Route path="orders/generate-lead" element={<GenerateLead />} />
         <Route path="inventory" element={<Inventory />} />
+        <Route path="warehouses" element={<Warehouses />} />
         <Route path="users" element={<Users />} />
         <Route path="reports" element={<Reports />} />
       </Routes>

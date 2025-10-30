@@ -100,7 +100,8 @@ const Orders = () => {
   const getStatusBadge = (status) => {
     const statusConfig = {
       pending: { variant: 'secondary', className: 'bg-gray-100 text-gray-800' },
-      vendor_accepted: { variant: 'secondary', className: 'bg-blue-100 text-blue-800' },
+      order_placed: { variant: 'secondary', className: 'bg-blue-100 text-blue-800' },
+      vendor_accepted: { variant: 'secondary', className: 'bg-green-100 text-green-800' },
       payment_done: { variant: 'secondary', className: 'bg-purple-100 text-purple-800' },
       order_confirmed: { variant: 'secondary', className: 'bg-orange-100 text-orange-800' },
       truck_loading: { variant: 'secondary', className: 'bg-yellow-100 text-yellow-800' },
@@ -196,6 +197,7 @@ const Orders = () => {
                   <SelectContent>
                     <SelectItem value="all">All Status</SelectItem>
                     <SelectItem value="pending">Pending</SelectItem>
+                    <SelectItem value="order_placed">Order Placed</SelectItem>
                     <SelectItem value="vendor_accepted">Vendor Accepted</SelectItem>
                     <SelectItem value="payment_done">Payment Done</SelectItem>
                     <SelectItem value="order_confirmed">Order Confirmed</SelectItem>
@@ -284,7 +286,7 @@ const Orders = () => {
                     </TableHeader>
                     <TableBody>
                       {orders.map((order) => (
-                        <TableRow key={order._id} className="hover:bg-gray-50">
+                        <TableRow key={order.leadId} className="hover:bg-gray-50">
                           <TableCell className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                             {order.formattedLeadId || order.leadId}
                           </TableCell>
@@ -293,27 +295,27 @@ const Orders = () => {
                           </TableCell>
                           <TableCell className="px-6 py-4 whitespace-nowrap">
                             <div className="text-sm">
-                              <div className="font-medium text-gray-900">{order.custUserId?.name}</div>
-                              <div className="text-gray-500">{order.custUserId?.phone}</div>
+                              <div className="font-medium text-gray-900">{order.customer?.name || order.custUserId?.name}</div>
+                              <div className="text-gray-500">{order.customer?.phone || order.custUserId?.phone}</div>
                             </div>
                           </TableCell>
                           <TableCell className="px-6 py-4 whitespace-nowrap">
                             <div className="text-sm">
-                              <div className="font-medium text-gray-900">{order.vendorId?.name}</div>
-                              <div className="text-gray-500">{order.vendorId?.companyName}</div>
+                              <div className="font-medium text-gray-900">{order.vendor?.name || order.vendorId?.name}</div>
+                              <div className="text-gray-500">{order.vendor?.email || order.vendorId?.companyName}</div>
                             </div>
                           </TableCell>
                           <TableCell className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
                             {order.items?.length || 0} item(s)
                           </TableCell>
                           <TableCell className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                            {order.totalQty}
+                            {order.items?.reduce((sum, item) => sum + (item.quantity || 0), 0) || order.totalQty || 0}
                           </TableCell>
                           <TableCell className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                             {formatCurrency(order.totalAmount)}
                           </TableCell>
                           <TableCell className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                            {formatDate(order.orderDate)}
+                            {formatDate(order.createdAt || order.orderDate)}
                           </TableCell>
                           <TableCell className="px-6 py-4 whitespace-nowrap">
                             {getStatusBadge(order.orderStatus)}
