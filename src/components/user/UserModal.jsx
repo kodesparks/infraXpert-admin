@@ -555,14 +555,13 @@ const UserModal = ({
                 <div className="space-y-2">
                   <Label htmlFor="terminationDate" className="flex items-center gap-2">
                     <Calendar className="h-4 w-4" />
-                    Termination Date {isFieldRequired('terminationDate') && <span className="text-red-500">*</span>}
+                    Termination Date
                   </Label>
                   <Input
                     id="terminationDate"
                     type="date"
                     value={formData.terminationDate}
                     onChange={(e) => handleInputChange('terminationDate', e.target.value)}
-                    required={isFieldRequired('terminationDate')}
                   />
                 </div>
 
