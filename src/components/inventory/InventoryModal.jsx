@@ -439,8 +439,8 @@ const InventoryModal = ({
           // Warehouse selection (optional for now)
           warehouses: selectedWarehouses.length > 0 ? selectedWarehouses : [],
           
-          // Vendor info
-          vendorId: formData.vendorId
+          // Vendor (optional)
+          ...(formData.vendorId && { vendorId: formData.vendorId })
         }
         
         response = await inventoryService.createInventoryItem(itemPayload)
@@ -643,26 +643,25 @@ const InventoryModal = ({
                   />
                 </div>
 
-                {/* Vendor */}
+                {/* Vendor (optional) */}
                 <div className="space-y-2">
                   <Label htmlFor="vendorId" className="flex items-center gap-2">
                     <Building className="h-4 w-4" />
-                    Vendor <span className="text-red-500">*</span>
+                    Vendor <span className="text-gray-400 font-normal">(Optional)</span>
                   </Label>
-                  <Select value={formData.vendorId} onValueChange={(value) => handleInputChange('vendorId', value)}>
+                  <Select value={formData.vendorId || 'none'} onValueChange={(value) => handleInputChange('vendorId', value === 'none' ? '' : value)}>
                     <SelectTrigger className={fieldErrors.vendorId ? 'border-red-500' : ''}>
-                      <SelectValue placeholder="Select vendor" />
+                      <SelectValue placeholder="Select vendor (optional)" />
                     </SelectTrigger>
                     <SelectContent>
+                      <SelectItem value="none">No vendor</SelectItem>
                       {vendors.length > 0 ? (
                         vendors.map(vendor => (
                         <SelectItem key={vendor._id} value={vendor._id}>
                           {vendor.companyName || vendor.name}
                         </SelectItem>
                         ))
-                      ) : (
-                        <SelectItem value="no-vendors" disabled>No vendors available</SelectItem>
-                      )}
+                      ) : null}
                     </SelectContent>
                   </Select>
                   {renderFieldError('vendorId')}

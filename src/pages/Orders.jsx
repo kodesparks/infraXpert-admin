@@ -41,22 +41,25 @@ const Orders = () => {
       setLoading(true)
       setError(null)
 
-      const params = {
-        page: pagination.currentPage,
-        limit: 20
-      }
+      const page = pagination.currentPage
+      const limit = 20
 
-      // Add filters
-      if (filters.status && filters.status !== 'all') {
-        params.status = filters.status
-      }
+      let response
       if (filters.orderDate) {
-        params.fromDate = filters.orderDate
-        params.toDate = filters.orderDate
+        // Use dedicated date-range endpoint with startDate/endDate (ISO)
+        response = await orderService.getOrdersByDateRange({
+          startDate: filters.orderDate,
+          endDate: filters.orderDate,
+          page,
+          limit
+        })
+      } else {
+        // List endpoint: status, vendorId, customerId, page, limit only (no date params)
+        const params = { page, limit }
+        if (filters.status && filters.status !== 'all') params.status = filters.status
+        response = await orderService.getAllOrders(params)
       }
 
-      const response = await orderService.getAllOrders(params)
-      
       if (response.orders) {
         setOrders(response.orders)
         if (response.pagination) {
@@ -196,17 +199,17 @@ const Orders = () => {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">All Status</SelectItem>
-                    <SelectItem value="pending">Pending</SelectItem>
-                    <SelectItem value="order_placed">Order Placed</SelectItem>
-                    <SelectItem value="vendor_accepted">Vendor Accepted</SelectItem>
-                    <SelectItem value="payment_done">Payment Done</SelectItem>
-                    <SelectItem value="order_confirmed">Order Confirmed</SelectItem>
-                    <SelectItem value="truck_loading">Truck Loading</SelectItem>
-                    <SelectItem value="in_transit">In Transit</SelectItem>
-                    <SelectItem value="shipped">Shipped</SelectItem>
-                    <SelectItem value="out_for_delivery">Out for Delivery</SelectItem>
-                    <SelectItem value="delivered">Delivered</SelectItem>
-                    <SelectItem value="cancelled">Cancelled</SelectItem>
+                    <SelectItem value="pending">{orderService.getStatusDisplayName('pending')}</SelectItem>
+                    <SelectItem value="order_placed">{orderService.getStatusDisplayName('order_placed')}</SelectItem>
+                    <SelectItem value="vendor_accepted">{orderService.getStatusDisplayName('vendor_accepted')}</SelectItem>
+                    <SelectItem value="payment_done">{orderService.getStatusDisplayName('payment_done')}</SelectItem>
+                    <SelectItem value="order_confirmed">{orderService.getStatusDisplayName('order_confirmed')}</SelectItem>
+                    <SelectItem value="truck_loading">{orderService.getStatusDisplayName('truck_loading')}</SelectItem>
+                    <SelectItem value="in_transit">{orderService.getStatusDisplayName('in_transit')}</SelectItem>
+                    <SelectItem value="shipped">{orderService.getStatusDisplayName('shipped')}</SelectItem>
+                    <SelectItem value="out_for_delivery">{orderService.getStatusDisplayName('out_for_delivery')}</SelectItem>
+                    <SelectItem value="delivered">{orderService.getStatusDisplayName('delivered')}</SelectItem>
+                    <SelectItem value="cancelled">{orderService.getStatusDisplayName('cancelled')}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

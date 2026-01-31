@@ -32,16 +32,16 @@ const OrderStats = () => {
       setLoading(true);
       setError(null);
 
-      // Only fetch available stats APIs
-      const [paymentStats, deliveryStats] = await Promise.all([
+      const [orderStats, paymentStats, deliveryStats] = await Promise.all([
+        orderService.getAdminOrderStats(),
         orderService.getPaymentStats(),
         orderService.getDeliveryStats()
       ]);
 
       setStats({
-        orders: null, // Order stats API not available
-        payments: paymentStats.stats,
-        deliveries: deliveryStats.stats
+        orders: orderStats?.stats ?? orderStats ?? null,
+        payments: paymentStats?.stats ?? paymentStats ?? null,
+        deliveries: deliveryStats?.stats ?? deliveryStats ?? null
       });
     } catch (err) {
       console.error('Error fetching stats:', err);

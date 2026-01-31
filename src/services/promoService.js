@@ -11,17 +11,14 @@ class PromoService {
     }
   }
 
-  // Get active promotional offers
+  // Get active promotional offers (GET /api/inventory/promo/active)
   async getActivePromos(params = {}) {
     try {
       const queryParams = new URLSearchParams()
-      
-      if (params.active !== undefined) queryParams.append('active', params.active)
-      if (params.category) queryParams.append('category', params.category)
       if (params.page) queryParams.append('page', params.page)
       if (params.limit) queryParams.append('limit', params.limit)
-      
-      const response = await apiClient.get(`/api/inventory/promo?${queryParams.toString()}`)
+      if (params.itemCode) queryParams.append('itemCode', params.itemCode)
+      const response = await apiClient.get(`/api/inventory/promo/active?${queryParams.toString()}`)
       return response.data
     } catch (error) {
       throw error

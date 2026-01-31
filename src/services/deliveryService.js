@@ -1,10 +1,20 @@
 import apiClient from '@/lib/apiClient'
 
 class DeliveryService {
-  // Calculate delivery charges
+  // Calculate delivery charges (POST /api/delivery/calculate)
   async calculateDelivery(deliveryData) {
     try {
       const response = await apiClient.post('/api/delivery/calculate', deliveryData)
+      return response.data
+    } catch (error) {
+      throw error
+    }
+  }
+
+  // Delivery time estimate for pincode (GET /api/delivery/estimate-time/:pincode). Public.
+  async getEstimateTime(pincode) {
+    try {
+      const response = await apiClient.get(`/api/delivery/estimate-time/${encodeURIComponent(pincode)}`)
       return response.data
     } catch (error) {
       throw error

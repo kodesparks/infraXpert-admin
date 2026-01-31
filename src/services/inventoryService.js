@@ -149,6 +149,37 @@ class InventoryService {
     }
   }
 
+  // Update inventory item pricing (PUT /api/inventory/:itemId/pricing). Body: optional basePrice, unitPrice, baseCharge, perKmCharge, warehouseLatitude, warehouseLongitude. Auth: Admin/Manager/Vendor (own).
+  async updateItemPricing(itemId, body) {
+    try {
+      const response = await apiClient.put(`/api/inventory/${itemId}/pricing`, body)
+      return response.data
+    } catch (error) {
+      throw error
+    }
+  }
+
+  // Zoho Books mapping (Admin/Manager only)
+  // Get inventory items not yet mapped to Zoho. GET /api/inventory/zoho/unmapped.
+  async getUnmappedZohoItems() {
+    try {
+      const response = await apiClient.get('/api/inventory/zoho/unmapped')
+      return response.data
+    } catch (error) {
+      throw error
+    }
+  }
+
+  // Map Zoho item to inventory. PUT /api/inventory/:id/zoho/map. Body: { zohoItemId }.
+  async mapZohoItem(inventoryId, zohoItemId) {
+    try {
+      const response = await apiClient.put(`/api/inventory/${inventoryId}/zoho/map`, { zohoItemId })
+      return response.data
+    } catch (error) {
+      throw error
+    }
+  }
+
   async getPrices(params = {}) {
     try {
       const queryParams = new URLSearchParams()

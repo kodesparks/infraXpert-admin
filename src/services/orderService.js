@@ -235,10 +235,25 @@ class OrderService {
     }
   }
 
-  // Get admin order stats
+  // Get admin order stats (GET /api/order/admin/orders/stats)
   async getAdminOrderStats() {
     try {
-      const response = await apiClient.get('/api/order/admin/stats')
+      const response = await apiClient.get('/api/order/admin/orders/stats')
+      return response.data
+    } catch (error) {
+      throw error
+    }
+  }
+
+  // Get orders in date range (GET /api/order/admin/orders/date-range). Params: startDate, endDate (ISO), page, limit.
+  async getOrdersByDateRange(params = {}) {
+    try {
+      const queryParams = new URLSearchParams()
+      if (params.startDate) queryParams.append('startDate', params.startDate)
+      if (params.endDate) queryParams.append('endDate', params.endDate)
+      if (params.page) queryParams.append('page', params.page)
+      if (params.limit) queryParams.append('limit', params.limit)
+      const response = await apiClient.get(`/api/order/admin/orders/date-range?${queryParams.toString()}`)
       return response.data
     } catch (error) {
       throw error
@@ -299,14 +314,19 @@ class OrderService {
     }
   }
 
-  // Mark delivered (legacy)
-  async markDelivered(leadId) {
+  // Mark delivered (legacy). Body optional: deliveredDate, receivedBy, remarks (per API doc).
+  async markDelivered(leadId, body = {}) {
     try {
-      const response = await apiClient.post(`/api/order/admin/orders/${leadId}/delivered`)
+      const response = await apiClient.post(`/api/order/admin/orders/${leadId}/delivered`, body)
       return response.data
     } catch (error) {
       throw error
     }
+  }
+
+  // Alias for mark delivered with body (used by OrderDetailsModal).
+  async markAsDelivered(leadId, body = {}) {
+    return this.markDelivered(leadId, body)
   }
 
   // Get status history (legacy)
@@ -329,15 +349,14 @@ class OrderService {
     }
   }
 
-  // Get all payments (legacy)
+  // Get all payments. Query params: paymentStatus, paymentMethod, page, limit (backend expects paymentStatus/paymentMethod, not status).
   async getAllPayments(params = {}) {
     try {
       const queryParams = new URLSearchParams()
-      
       if (params.page) queryParams.append('page', params.page)
       if (params.limit) queryParams.append('limit', params.limit)
-      if (params.status) queryParams.append('status', params.status)
-      
+      if (params.paymentStatus) queryParams.append('paymentStatus', params.paymentStatus)
+      if (params.paymentMethod) queryParams.append('paymentMethod', params.paymentMethod)
       const response = await apiClient.get(`/api/order/admin/payments?${queryParams.toString()}`)
       return response.data
     } catch (error) {
@@ -355,37 +374,59 @@ class OrderService {
     }
   }
 
-  // Get payment stats (legacy)
+  // Get payment stats (GET /api/order/admin/payments/stats)
   async getPaymentStats() {
     try {
-      const response = await apiClient.get('/api/order/admin/stats/payments')
+      const response = await apiClient.get('/api/order/admin/payments/stats')
       return response.data
     } catch (error) {
       throw error
     }
   }
 
-  // Get delivery stats (legacy)
+  // Get delivery stats (GET /api/order/admin/deliveries/stats)
   async getDeliveryStats() {
     try {
-      const response = await apiClient.get('/api/order/admin/stats/deliveries')
+      const response = await apiClient.get('/api/order/admin/deliveries/stats')
       return response.data
     } catch (error) {
       throw error
     }
+  }
+
+  // ============================================
+  // PDF DOWNLOADS (Admin – backend fetches from Zoho)
+  // ============================================
+
+  /** Get PDF as blob and return object URL for download. type: 'po' | 'quote' | 'so' | 'invoice' */
+  async getOrderPdfBlob(leadId, type) {
+    const path = `/api/order/admin/orders/${leadId}/pdf/${type}`
+    const response = await apiClient.get(path, { responseType: 'blob' })
+    return response.data
+  }
+
+  /** Download order PDF. type: 'po' | 'quote' | 'so' | 'invoice'. filename optional. */
+  async downloadOrderPdf(leadId, type, filename) {
+    const blob = await this.getOrderPdfBlob(leadId, type)
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = filename || `order-${leadId}-${type}.pdf`
+    a.click()
+    URL.revokeObjectURL(url)
   }
 
   // ============================================
   // UTILITY FUNCTIONS
   // ============================================
   
-  // Get status display name
+  // Get status display name (vendor_accepted shown as "Quote Generated" in UI)
   getStatusDisplayName(status) {
     const statusMap = {
       'cart': 'In Cart',
       'pending': 'Pending',
       'order_placed': 'Order Placed',
-      'vendor_accepted': 'Vendor Accepted',
+      'vendor_accepted': 'Quote Generated / Order Accepted',
       'payment_done': 'Payment Done',
       'order_confirmed': 'Order Confirmed',
       'truck_loading': 'Truck Loading',

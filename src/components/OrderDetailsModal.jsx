@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { X, Clock, CheckCircle, Truck, MapPin, Package, DollarSign, AlertCircle, Loader2 } from "lucide-react";
+import { X, Clock, CheckCircle, Truck, MapPin, Package, DollarSign, AlertCircle, Loader2, FileDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -54,6 +54,9 @@ const OrderDetailsModal = ({ isOpen, onClose, order, onOrderUpdate }) => {
     reason: '',
     remarks: ''
   });
+
+  // PDF download state (po | quote | so | invoice)
+  const [pdfDownloading, setPdfDownloading] = useState(null);
 
   useEffect(() => {
     if (isOpen && order) {
@@ -546,6 +549,50 @@ const OrderDetailsModal = ({ isOpen, onClose, order, onOrderUpdate }) => {
                         <p className="text-sm text-gray-600 mt-1">Expected Delivery: {formatDate(orderDetails.order.deliveryExpectedDate)}</p>
                     )}
                   </div>
+                  </div>
+
+                  {/* PDF documents – show by order status: Quote (order placed+), Sales Order (accepted+), Invoice (in transit/out for delivery+) */}
+                  <div>
+                    <h4 className="text-lg font-medium text-gray-900 mb-4">Documents (PDF)</h4>
+                    <div className="flex flex-wrap gap-2">
+                      {(() => {
+                        const status = orderDetails?.order?.orderStatus || '';
+                        const showQuote = ['order_placed', 'vendor_accepted', 'order_confirmed', 'payment_done', 'truck_loading', 'in_transit', 'out_for_delivery', 'delivered'].includes(status);
+                        const showSalesOrder = ['vendor_accepted', 'order_confirmed', 'payment_done', 'truck_loading', 'in_transit', 'out_for_delivery', 'delivered'].includes(status);
+                        const showInvoice = ['in_transit', 'out_for_delivery', 'delivered'].includes(status);
+                        const docConfig = [
+                          showQuote && { type: 'quote', label: 'Quote' },
+                          showSalesOrder && { type: 'so', label: 'Sales Order' },
+                          showInvoice && { type: 'invoice', label: 'Invoice' }
+                        ].filter(Boolean);
+                        return docConfig.map(({ type, label }) => (
+                          <Button
+                            key={type}
+                            variant="outline"
+                            size="sm"
+                            disabled={!!pdfDownloading}
+                            onClick={async () => {
+                              setPdfDownloading(type);
+                              try {
+                                await orderService.downloadOrderPdf(order.leadId, type);
+                              } catch (err) {
+                                console.error('PDF download failed:', err);
+                                alert(err.response?.data?.message || `Failed to download ${label} PDF`);
+                              } finally {
+                                setPdfDownloading(null);
+                              }
+                            }}
+                          >
+                            {pdfDownloading === type ? (
+                              <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                            ) : (
+                              <FileDown className="w-4 h-4 mr-2" />
+                            )}
+                            {label}
+                          </Button>
+                        ));
+                      })()}
+                    </div>
                   </div>
                   </div>
               )}

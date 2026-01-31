@@ -12,10 +12,20 @@ class WarehouseService {
     }
   }
 
-  // Trigger inventory sync after warehouse updates (admin only)
+  // Trigger inventory sync after warehouse updates (admin only). POST /api/warehouse/sync-inventory.
   async syncInventory() {
     try {
-      const response = await apiClient.post(API_CONFIG.ENDPOINTS.WAREHOUSE.SYNC_INVENTORY || '/api/warehouse/sync-inventory')
+      const response = await apiClient.post(API_CONFIG.ENDPOINTS.WAREHOUSE.SYNC_INVENTORY)
+      return response.data
+    } catch (error) {
+      throw error
+    }
+  }
+
+  // Cleanup orphaned warehouse references. POST /api/warehouse/cleanup-orphaned. Auth: Admin/Manager.
+  async cleanupOrphaned() {
+    try {
+      const response = await apiClient.post(API_CONFIG.ENDPOINTS.WAREHOUSE.CLEANUP_ORPHANED)
       return response.data
     } catch (error) {
       throw error
