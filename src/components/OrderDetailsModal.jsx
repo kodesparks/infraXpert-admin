@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { Separator } from "@/components/ui/separator";
 import orderService from "@/services/orderService";
 
 const OrderDetailsModal = ({ isOpen, onClose, order, onOrderUpdate }) => {
@@ -41,11 +42,18 @@ const OrderDetailsModal = ({ isOpen, onClose, order, onOrderUpdate }) => {
     deliveryNotes: ''
   });
 
-  // Status update state
+  // Status update state (orderStatus + optional truck details per PUT .../status API)
   const [showStatusModal, setShowStatusModal] = useState(false);
   const [statusData, setStatusData] = useState({
     orderStatus: '',
-    remarks: ''
+    remarks: '',
+    driverName: '',
+    driverPhone: '',
+    driverLicenseNo: '',
+    truckNumber: '',
+    vehicleType: '',
+    capacityTons: '',
+    deliveryNotes: ''
   });
 
   // Cancel order state
@@ -63,6 +71,24 @@ const OrderDetailsModal = ({ isOpen, onClose, order, onOrderUpdate }) => {
       fetchOrderDetails();
     }
   }, [isOpen, order]);
+
+  // When opening status modal, reset status/remarks and pre-fill optional truck fields from deliveryInfo
+  useEffect(() => {
+    if (showStatusModal) {
+      const d = orderDetails?.order?.delivery || orderDetails?.deliveryInfo || {};
+      setStatusData({
+        orderStatus: '',
+        remarks: '',
+        driverName: d.driverName || '',
+        driverPhone: d.driverPhone || '',
+        driverLicenseNo: d.driverLicenseNo || '',
+        truckNumber: d.truckNumber || '',
+        vehicleType: d.vehicleType || '',
+        capacityTons: d.capacityTons ?? '',
+        deliveryNotes: d.deliveryNotes || ''
+      });
+    }
+  }, [showStatusModal]);
 
   const fetchOrderDetails = async () => {
     if (!order || !order.leadId) return;
@@ -145,9 +171,24 @@ const OrderDetailsModal = ({ isOpen, onClose, order, onOrderUpdate }) => {
   };
 
   const handleUpdateStatus = async () => {
+    if (!statusData.orderStatus) {
+      alert('Please select a new status');
+      return;
+    }
     try {
       setActionLoading(true);
-      await orderService.updateOrderStatus(order.leadId, statusData);
+      const payload = {
+        orderStatus: statusData.orderStatus,
+        ...(statusData.remarks && { remarks: statusData.remarks })
+      };
+      const truckFields = ['driverName', 'driverPhone', 'driverLicenseNo', 'truckNumber', 'vehicleType', 'deliveryNotes'];
+      truckFields.forEach(key => {
+        if (statusData[key]) payload[key] = statusData[key];
+      });
+      if (statusData.capacityTons !== '' && !Number.isNaN(parseFloat(statusData.capacityTons))) {
+        payload.capacityTons = parseFloat(statusData.capacityTons);
+      }
+      await orderService.updateOrderStatus(order.leadId, payload);
       alert('Order status updated successfully!');
       setShowStatusModal(false);
       await fetchOrderDetails();
@@ -447,9 +488,17 @@ const OrderDetailsModal = ({ isOpen, onClose, order, onOrderUpdate }) => {
                 </div>
               </div>
 
-                      <h4 className="text-lg font-medium text-gray-900 mt-4">Delivery (In-house)</h4>
+                      <h4 className="text-lg font-medium text-gray-900 mt-4">Delivery / Truck details</h4>
                       <div className="space-y-3 bg-gray-50 p-4 rounded-lg">
-                        {(() => { const d = orderDetails?.order?.delivery || orderDetails?.deliveryInfo || {}; return (
+                        {(() => {
+                          const d = orderDetails?.order?.delivery || orderDetails?.deliveryInfo;
+                          const hasDelivery = d && (d.driverName || d.driverPhone || d.truckNumber || d.vehicleType || d.deliveryStatus);
+                          if (!hasDelivery) {
+                            return (
+                              <p className="text-sm text-gray-500">Not set. Use &quot;Update Status&quot; or &quot;Update Delivery&quot; to add truck details.</p>
+                            );
+                          }
+                          return (
                           <>
                             <div className="flex justify-between">
                               <span className="text-sm text-gray-600">Delivery Status:</span>
@@ -498,7 +547,8 @@ const OrderDetailsModal = ({ isOpen, onClose, order, onOrderUpdate }) => {
                   </div>
                             )}
                           </>
-                        )})()}
+                        );
+                        })()}
                 </div>
               </div>
             </div>
@@ -706,6 +756,13 @@ const OrderDetailsModal = ({ isOpen, onClose, order, onOrderUpdate }) => {
                         Update Status
                       </Button>
                       <Button
+                        onClick={() => setShowDeliveryModal(true)}
+                        variant="outline"
+                      >
+                        <Truck className="w-4 h-4 mr-2" />
+                        Update Delivery / Truck
+                      </Button>
+                      <Button
                         onClick={() => setShowCancelModal(true)}
                         className="bg-red-600 hover:bg-red-700"
                       >
@@ -876,10 +933,10 @@ const OrderDetailsModal = ({ isOpen, onClose, order, onOrderUpdate }) => {
         </div>
       )}
 
-      {/* Status Update Modal */}
+      {/* Status Update Modal (with optional truck details per PUT .../status API) */}
       {showStatusModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[110] p-4">
-          <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6 relative z-[111]">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto p-6 relative z-[111]">
             <h3 className="text-lg font-semibold mb-4">Update Order Status</h3>
             <div className="space-y-4">
               <div>
@@ -902,9 +959,78 @@ const OrderDetailsModal = ({ isOpen, onClose, order, onOrderUpdate }) => {
                 <Textarea
                   value={statusData.remarks}
                   onChange={(e) => setStatusData({ ...statusData, remarks: e.target.value })}
-                  rows={3}
+                  rows={2}
                   placeholder="Enter reason for status change"
                 />
+              </div>
+              <Separator className="my-4" />
+              <p className="text-sm font-medium text-gray-700">Truck details (optional)</p>
+              <div className="grid grid-cols-1 gap-3">
+                <div>
+                  <Label className="text-gray-600">Driver name</Label>
+                  <Input
+                    value={statusData.driverName}
+                    onChange={(e) => setStatusData({ ...statusData, driverName: e.target.value })}
+                    placeholder="Driver name"
+                  />
+                </div>
+                <div>
+                  <Label className="text-gray-600">Driver phone</Label>
+                  <Input
+                    value={statusData.driverPhone}
+                    onChange={(e) => setStatusData({ ...statusData, driverPhone: e.target.value })}
+                    placeholder="7–15 digits, + - space allowed"
+                  />
+                </div>
+                <div>
+                  <Label className="text-gray-600">Driver licence no.</Label>
+                  <Input
+                    value={statusData.driverLicenseNo}
+                    onChange={(e) => setStatusData({ ...statusData, driverLicenseNo: e.target.value })}
+                    placeholder="Optional"
+                  />
+                </div>
+                <div>
+                  <Label className="text-gray-600">Truck number</Label>
+                  <Input
+                    value={statusData.truckNumber}
+                    onChange={(e) => setStatusData({ ...statusData, truckNumber: e.target.value })}
+                    placeholder="e.g. TS-01-AB-1234"
+                  />
+                </div>
+                <div>
+                  <Label className="text-gray-600">Vehicle type</Label>
+                  <Select value={statusData.vehicleType || 'none'} onValueChange={(v) => setStatusData({ ...statusData, vehicleType: v === 'none' ? '' : v })}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select type" />
+                    </SelectTrigger>
+                    <SelectContent className="z-[120]">
+                      <SelectItem value="none">—</SelectItem>
+                      <SelectItem value="Open">Open</SelectItem>
+                      <SelectItem value="Closed">Closed</SelectItem>
+                      <SelectItem value="Regular">Regular</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label className="text-gray-600">Capacity (tons)</Label>
+                  <Input
+                    type="number"
+                    step="any"
+                    value={statusData.capacityTons}
+                    onChange={(e) => setStatusData({ ...statusData, capacityTons: e.target.value })}
+                    placeholder="Optional"
+                  />
+                </div>
+                <div>
+                  <Label className="text-gray-600">Delivery notes</Label>
+                  <Textarea
+                    value={statusData.deliveryNotes}
+                    onChange={(e) => setStatusData({ ...statusData, deliveryNotes: e.target.value })}
+                    rows={2}
+                    placeholder="Optional"
+                  />
+                </div>
               </div>
             </div>
             <div className="flex gap-3 mt-6">
@@ -913,7 +1039,7 @@ const OrderDetailsModal = ({ isOpen, onClose, order, onOrderUpdate }) => {
                 Update Status
               </Button>
               <Button onClick={() => setShowStatusModal(false)} variant="outline" className="flex-1">
-              Cancel
+                Cancel
               </Button>
             </div>
           </div>
