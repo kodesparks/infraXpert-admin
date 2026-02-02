@@ -398,14 +398,14 @@ class OrderService {
   // PDF DOWNLOADS (Admin – backend fetches from Zoho)
   // ============================================
 
-  /** Get PDF as blob and return object URL for download. type: 'po' | 'quote' | 'so' | 'invoice' */
+  /** Get PDF as blob and return object URL for download. type: 'po' | 'quote' | 'so' | 'invoice' | 'eway' */
   async getOrderPdfBlob(leadId, type) {
     const path = `/api/order/admin/orders/${leadId}/pdf/${type}`
     const response = await apiClient.get(path, { responseType: 'blob' })
     return response.data
   }
 
-  /** Download order PDF. type: 'po' | 'quote' | 'so' | 'invoice'. filename optional. */
+  /** Download order PDF. type: 'po' | 'quote' | 'so' | 'invoice' | 'eway'. filename optional. */
   async downloadOrderPdf(leadId, type, filename) {
     const blob = await this.getOrderPdfBlob(leadId, type)
     const url = URL.createObjectURL(blob)

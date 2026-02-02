@@ -601,21 +601,15 @@ const OrderDetailsModal = ({ isOpen, onClose, order, onOrderUpdate }) => {
                   </div>
                   </div>
 
-                  {/* PDF documents – show by order status: Quote (order placed+), Sales Order (accepted+), Invoice (in transit/out for delivery+) */}
+                  {/* PDF documents: Quote, Sales Order, Invoice shown all the time. */}
                   <div>
                     <h4 className="text-lg font-medium text-gray-900 mb-4">Documents (PDF)</h4>
                     <div className="flex flex-wrap gap-2">
-                      {(() => {
-                        const status = orderDetails?.order?.orderStatus || '';
-                        const showQuote = ['order_placed', 'vendor_accepted', 'order_confirmed', 'payment_done', 'truck_loading', 'in_transit', 'out_for_delivery', 'delivered'].includes(status);
-                        const showSalesOrder = ['vendor_accepted', 'order_confirmed', 'payment_done', 'truck_loading', 'in_transit', 'out_for_delivery', 'delivered'].includes(status);
-                        const showInvoice = ['in_transit', 'out_for_delivery', 'delivered'].includes(status);
-                        const docConfig = [
-                          showQuote && { type: 'quote', label: 'Quote' },
-                          showSalesOrder && { type: 'so', label: 'Sales Order' },
-                          showInvoice && { type: 'invoice', label: 'Invoice' }
-                        ].filter(Boolean);
-                        return docConfig.map(({ type, label }) => (
+                      {[
+                        { type: 'quote', label: 'Quote' },
+                        { type: 'so', label: 'Sales Order' },
+                        { type: 'invoice', label: 'Invoice' }
+                      ].map(({ type, label }) => (
                           <Button
                             key={type}
                             variant="outline"
@@ -627,7 +621,11 @@ const OrderDetailsModal = ({ isOpen, onClose, order, onOrderUpdate }) => {
                                 await orderService.downloadOrderPdf(order.leadId, type);
                               } catch (err) {
                                 console.error('PDF download failed:', err);
-                                alert(err.response?.data?.message || `Failed to download ${label} PDF`);
+                                if (err.response?.status === 404 && type === 'quote') {
+                                  alert('Quote is generated when the order is confirmed.');
+                                } else {
+                                  alert(err.response?.data?.message || `Failed to download ${label} PDF`);
+                                }
                               } finally {
                                 setPdfDownloading(null);
                               }
@@ -640,8 +638,7 @@ const OrderDetailsModal = ({ isOpen, onClose, order, onOrderUpdate }) => {
                             )}
                             {label}
                           </Button>
-                        ));
-                      })()}
+                      ))}
                     </div>
                   </div>
                   </div>
