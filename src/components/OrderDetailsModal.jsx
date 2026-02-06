@@ -601,15 +601,25 @@ const OrderDetailsModal = ({ isOpen, onClose, order, onOrderUpdate }) => {
                   </div>
                   </div>
 
-                  {/* PDF documents: Quote, Sales Order, Invoice shown all the time. */}
+                  {/* PDF documents by status: Quote when accepted (Quote Generated). Sales Order when Order Confirmed. Invoice when Out for Delivery / delivery stage. */}
                   <div>
                     <h4 className="text-lg font-medium text-gray-900 mb-4">Documents (PDF)</h4>
                     <div className="flex flex-wrap gap-2">
-                      {[
-                        { type: 'quote', label: 'Quote' },
-                        { type: 'so', label: 'Sales Order' },
-                        { type: 'invoice', label: 'Invoice' }
-                      ].map(({ type, label }) => (
+                      {(() => {
+                        const status = orderDetails?.order?.orderStatus || '';
+                        const deliveryStage = ['in_transit', 'out_for_delivery', 'delivered'];
+                        const isDeliveryStage = deliveryStage.includes(status);
+                        const showQuote = ['vendor_accepted', 'order_confirmed', 'payment_done', 'truck_loading'].includes(status);
+                        const showSalesOrder = ['order_confirmed', 'payment_done', 'truck_loading'].includes(status);
+                        const showInvoice = isDeliveryStage;
+                        const showEwayBill = isDeliveryStage;
+                        const docConfig = [
+                          showQuote && { type: 'quote', label: 'Quote' },
+                          showSalesOrder && { type: 'so', label: 'Sales Order' },
+                          showInvoice && { type: 'invoice', label: 'Invoice' },
+                          showEwayBill && { type: 'eway', label: 'E-way Bill' }
+                        ].filter(Boolean);
+                        return docConfig.map(({ type, label }) => (
                           <Button
                             key={type}
                             variant="outline"
@@ -638,7 +648,8 @@ const OrderDetailsModal = ({ isOpen, onClose, order, onOrderUpdate }) => {
                             )}
                             {label}
                           </Button>
-                      ))}
+                        ));
+                      })()}
                     </div>
                   </div>
                   </div>
