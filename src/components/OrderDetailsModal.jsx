@@ -53,7 +53,9 @@ const OrderDetailsModal = ({ isOpen, onClose, order, onOrderUpdate }) => {
     truckNumber: '',
     vehicleType: '',
     capacityTons: '',
-    deliveryNotes: ''
+    deliveryNotes: '',
+    unitPrice: '',
+    loadingCharges: '',
   });
 
   // Cancel order state
@@ -175,11 +177,22 @@ const OrderDetailsModal = ({ isOpen, onClose, order, onOrderUpdate }) => {
       alert('Please select a new status');
       return;
     }
+    if (
+      statusData.orderStatus === 'vendor_accepted' &&
+      (!statusData.unitPrice || !statusData.loadingCharges)
+    ) {
+      alert('Please enter unit price and loading charges');
+      return;
+    }
     try {
       setActionLoading(true);
       const payload = {
         orderStatus: statusData.orderStatus,
-        ...(statusData.remarks && { remarks: statusData.remarks })
+        ...(statusData.remarks && { remarks: statusData.remarks }),
+        ...(statusData.orderStatus === 'vendor_accepted' && {
+        unitPrice: Number(statusData.unitPrice),
+        loadingCharges: Number(statusData.loadingCharges),
+      }),
       };
       const truckFields = ['driverName', 'driverPhone', 'driverLicenseNo', 'truckNumber', 'vehicleType', 'deliveryNotes'];
       truckFields.forEach(key => {
@@ -962,6 +975,34 @@ const OrderDetailsModal = ({ isOpen, onClose, order, onOrderUpdate }) => {
                   </SelectContent>
                 </Select>
               </div>
+              {statusData.orderStatus === 'vendor_accepted' && (
+                <div className="grid grid-cols-2 gap-4 mt-4">
+                  <div>
+                    <Label>Unit Price (₹)</Label>
+                    <Input
+                      type="number"
+                      placeholder="Enter unit price"
+                      value={statusData.unitPrice}
+                      onChange={(e) =>
+                        setStatusData({ ...statusData, unitPrice: e.target.value })
+                      }
+                    />
+                  </div>
+
+                  <div>
+                    <Label>Loading Charges</Label>
+                    <Input
+                      type="number"
+                      placeholder="Enter loading charges"
+                      value={statusData.loadingCharges}
+                      onChange={(e) =>
+                        setStatusData({ ...statusData, loadingCharges: e.target.value })
+                      }
+                    />
+                  </div>
+                </div>
+              )} 
+              <Separator className="my-4" />
               <div>
                 <Label>Remarks</Label>
                 <Textarea
