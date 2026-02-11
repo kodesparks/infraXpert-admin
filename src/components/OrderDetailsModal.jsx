@@ -44,6 +44,8 @@ const OrderDetailsModal = ({ isOpen, onClose, order, onOrderUpdate }) => {
 
   // Status update state (orderStatus + optional truck details per PUT .../status API)
   const [showStatusModal, setShowStatusModal] = useState(false);
+  const [isPriceModalOpen, setIsPriceModalOpen] = useState(false);
+
   const [statusData, setStatusData] = useState({
     orderStatus: '',
     remarks: '',
@@ -54,8 +56,7 @@ const OrderDetailsModal = ({ isOpen, onClose, order, onOrderUpdate }) => {
     vehicleType: '',
     capacityTons: '',
     deliveryNotes: '',
-    unitPrice: '',
-    loadingCharges: '',
+    items:[]
   });
 
   // Cancel order state
@@ -87,7 +88,14 @@ const OrderDetailsModal = ({ isOpen, onClose, order, onOrderUpdate }) => {
         truckNumber: d.truckNumber || '',
         vehicleType: d.vehicleType || '',
         capacityTons: d.capacityTons ?? '',
-        deliveryNotes: d.deliveryNotes || ''
+        deliveryNotes: d.deliveryNotes || '',
+        items: orderDetails.order.items.map(item => ({
+          itemCode: item.itemCode._id,
+          name: item.itemCode.itemDescription,
+          qty: item.qty,
+          unitPrice: item.unitPrice || '',
+          loadingCharges: item.loadingCharges || ''
+        }))
       });
     }
   }, [showStatusModal]);
@@ -177,22 +185,36 @@ const OrderDetailsModal = ({ isOpen, onClose, order, onOrderUpdate }) => {
       alert('Please select a new status');
       return;
     }
-    if (
-      statusData.orderStatus === 'vendor_accepted' &&
-      (!statusData.unitPrice || !statusData.loadingCharges)
-    ) {
-      alert('Please enter unit price and loading charges');
-      return;
-    }
+    if (statusData.orderStatus === 'vendor_accepted') {
+      for (const item of statusData.items) {
+        const unitPrice = Number(item.unitPrice);
+        const loadingCharges = Number(item.loadingCharges);
+
+        if (!unitPrice || isNaN(unitPrice) || unitPrice <= 0) {
+          alert(`Please enter valid unit price for ${item.name}`);
+          return;
+        }
+
+        if (isNaN(loadingCharges) || loadingCharges <= 0) {
+          alert(`Please enter valid loading charges for ${item.name}`);
+          return;
+        }
+      }
+      }
+    
     try {
       setActionLoading(true);
       const payload = {
         orderStatus: statusData.orderStatus,
         ...(statusData.remarks && { remarks: statusData.remarks }),
+
         ...(statusData.orderStatus === 'vendor_accepted' && {
-        unitPrice: Number(statusData.unitPrice),
-        loadingCharges: Number(statusData.loadingCharges),
-      }),
+          items: statusData.items.map(item => ({
+            itemCode: item.itemCode,
+            unitPrice: Number(item.unitPrice),
+            loadingCharges: Number(item.loadingCharges || 0)
+          }))
+        })
       };
       const truckFields = ['driverName', 'driverPhone', 'driverLicenseNo', 'truckNumber', 'vehicleType', 'deliveryNotes'];
       truckFields.forEach(key => {
@@ -687,6 +709,18 @@ const OrderDetailsModal = ({ isOpen, onClose, order, onOrderUpdate }) => {
                           {orderDetails?.paymentInfo?.paymentStatus || 'Pending'}
                         </Badge>
                       </div>
+                      <div className="flex justify-between">
+                        <span className="text-sm text-gray-600">UTR Number:</span>
+                        <span className="text-sm font-medium text-gray-900">
+                          {orderDetails?.customerPaymentDetails?.utrNum || '-'}
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-sm text-gray-600">Account Number:</span>
+                        <span className="text-sm font-medium text-gray-900">
+                          {orderDetails?.customerPaymentDetails?.accNum || '-'}
+                        </span>
+                      </div>
                       {orderDetails?.paymentInfo?.paymentMethod && (
                         <div className="flex justify-between">
                           <span className="text-sm text-gray-600">Payment Method:</span>
@@ -976,30 +1010,14 @@ const OrderDetailsModal = ({ isOpen, onClose, order, onOrderUpdate }) => {
                 </Select>
               </div>
               {statusData.orderStatus === 'vendor_accepted' && (
-                <div className="grid grid-cols-2 gap-4 mt-4">
-                  <div>
-                    <Label>Unit Price (₹)</Label>
-                    <Input
-                      type="number"
-                      placeholder="Enter unit price"
-                      value={statusData.unitPrice}
-                      onChange={(e) =>
-                        setStatusData({ ...statusData, unitPrice: e.target.value })
-                      }
-                    />
-                  </div>
-
-                  <div>
-                    <Label>Loading Charges</Label>
-                    <Input
-                      type="number"
-                      placeholder="Enter loading charges"
-                      value={statusData.loadingCharges}
-                      onChange={(e) =>
-                        setStatusData({ ...statusData, loadingCharges: e.target.value })
-                      }
-                    />
-                  </div>
+                <div className="mt-4">
+                  <Button
+                    type="button"
+                    onClick={() => setIsPriceModalOpen(true)}
+                    className="bg-blue-600 text-white"
+                  >
+                    Add Prices
+                  </Button>
                 </div>
               )} 
               <Separator className="my-4" />
@@ -1132,6 +1150,91 @@ const OrderDetailsModal = ({ isOpen, onClose, order, onOrderUpdate }) => {
       </div>
     </div>
       )}
+
+      {isPriceModalOpen && (
+      <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-[9999]">
+        <div className="bg-white rounded-lg p-6 w-[700px] max-h-[80vh] overflow-y-auto">
+
+          <h2 className="text-lg font-semibold mb-4">
+            Enter Item Prices
+          </h2>
+
+          {statusData.items.map((item, index) => (
+            <div
+              key={item.itemCode}
+              className="border rounded p-4 mb-4"
+            >
+              <p className="font-medium mb-2">
+                {item.name} (Qty: {item.qty})
+              </p>
+
+              <div className="grid grid-cols-2 gap-4">
+
+                <div>
+                  <Label>Unit Price (₹)</Label>
+                  <Input
+                    type="text"
+                    value={item.unitPrice}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      if (/^(?:\d+|\d*\.\d+)?$/.test(value)) {
+                        const updatedItems = [...statusData.items];
+                        updatedItems[index].unitPrice = value;
+                        setStatusData({
+                          ...statusData,
+                          items: updatedItems
+                        });
+                      }
+                    }}
+                    inputMode="decimal"
+                  />
+                </div>
+
+                <div>
+                  <Label>Loading Charges</Label>
+                  <Input
+                    type="text"
+                    value={item.loadingCharges}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      if (/^(?:\d+|\d*\.\d+)?$/.test(value)) {
+                        const updatedItems = [...statusData.items];
+                        updatedItems[index].loadingCharges = value;
+                        setStatusData({
+                          ...statusData,
+                          items: updatedItems
+                        });
+                      }
+                    }}
+                    inputMode="decimal"
+                  />
+                </div>
+
+              </div>
+            </div>
+          ))}
+
+          <div className="flex justify-end gap-3 mt-4">
+            <Button
+              variant="outline"
+              onClick={() => setIsPriceModalOpen(false)}
+            >
+              Cancel
+            </Button>
+
+            <Button
+              onClick={() => {
+                setIsPriceModalOpen(false);
+              }}
+            >
+              Save Prices
+            </Button>
+          </div>
+
+        </div>
+      </div>
+    )}
+
     </>
   );
 };
