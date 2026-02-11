@@ -712,13 +712,13 @@ const OrderDetailsModal = ({ isOpen, onClose, order, onOrderUpdate }) => {
                       <div className="flex justify-between">
                         <span className="text-sm text-gray-600">UTR Number:</span>
                         <span className="text-sm font-medium text-gray-900">
-                          {orderDetails?.customerPaymentDetails?.utrNum || '-'}
+                          {orderDetails?.order?.customerPaymentDetails?.utrNum || '-'}
                         </span>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-sm text-gray-600">Account Number:</span>
                         <span className="text-sm font-medium text-gray-900">
-                          {orderDetails?.customerPaymentDetails?.accNum || '-'}
+                          {orderDetails?.order?.customerPaymentDetails?.accNum || '-'}
                         </span>
                       </div>
                       {orderDetails?.paymentInfo?.paymentMethod && (
