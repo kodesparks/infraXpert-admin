@@ -258,9 +258,9 @@ const Orders = () => {
                         <TableHead className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                           Lead ID
                         </TableHead>
-                        <TableHead className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        {/* <TableHead className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                           Invoice
-                        </TableHead>
+                        </TableHead> */}
                         <TableHead className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                           Customer
                         </TableHead>
@@ -290,12 +290,13 @@ const Orders = () => {
                     <TableBody>
                       {orders.map((order) => (
                         <TableRow key={order.leadId} className="hover:bg-gray-50">
-                          <TableCell className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                          <TableCell className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 text-blue-600 hover:text-blue-900 cursor-pointer" variant="ghost" 
+                          onClick={() => handleShowOrderDetails(order)}>
                             {order.formattedLeadId || order.leadId}
                           </TableCell>
-                          <TableCell className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                          {/* <TableCell className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
                             {order.invcNum}
-                          </TableCell>
+                          </TableCell> */}
                           <TableCell className="px-6 py-4 whitespace-nowrap">
                             <div className="text-sm">
                               <div className="font-medium text-gray-900">{order.customer?.name || order.custUserId?.name}</div>
