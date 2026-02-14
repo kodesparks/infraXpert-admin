@@ -195,7 +195,7 @@ const OrderDetailsModal = ({ isOpen, onClose, order, onOrderUpdate }) => {
           return;
         }
 
-        if (isNaN(loadingCharges) || loadingCharges <= 0) {
+        if (isNaN(loadingCharges) || loadingCharges < 0) {
           alert(`Please enter valid loading charges for ${item.name}`);
           return;
         }
@@ -453,7 +453,7 @@ const OrderDetailsModal = ({ isOpen, onClose, order, onOrderUpdate }) => {
                 <div className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     {/* Order Information */}
-                    <div className="space-y-4">
+                    {/* <div className="space-y-4">
                       <h4 className="text-lg font-medium text-gray-900">Order Information</h4>
                       <div className="space-y-3 bg-gray-50 p-4 rounded-lg">
                   <div className="flex justify-between">
@@ -487,105 +487,107 @@ const OrderDetailsModal = ({ isOpen, onClose, order, onOrderUpdate }) => {
                           {orderDetails?.order?.orderStatus && getStatusBadge(orderDetails.order.orderStatus)}
                   </div>
                   </div>
-                  </div>
+                  </div> */}
 
                     {/* Customer Information */}
-                    <div className="space-y-4">
-                      <h4 className="text-lg font-medium text-gray-900">Customer Information</h4>
-                      <div className="space-y-3 bg-gray-50 p-4 rounded-lg">
-                  <div className="flex justify-between">
-                          <span className="text-sm text-gray-600">Name:</span>
-                          <span className="text-sm font-medium text-gray-900">{orderDetails?.order?.customer?.name || orderDetails?.order?.custUserId?.name}</span>
-                  </div>
-                  <div className="flex justify-between">
-                          <span className="text-sm text-gray-600">Email:</span>
-                          <span className="text-sm font-medium text-gray-900">{orderDetails?.order?.customer?.email || orderDetails?.order?.custUserId?.email}</span>
-                  </div>
-                  <div className="flex justify-between">
-                          <span className="text-sm text-gray-600">Phone:</span>
-                          <span className="text-sm font-medium text-gray-900">{orderDetails?.order?.customer?.phone || orderDetails?.order?.custUserId?.phone}</span>
-                        </div>
-                      </div>
+                        <div className="space-y-6">
+                          <h4 className="text-lg font-medium text-gray-900">Customer Information</h4>
+                          <div className="space-y-3 bg-gray-50 p-4 rounded-lg">
+                            <div className="flex justify-between">
+                              <span className="text-sm text-gray-600">Name:</span>
+                              <span className="text-sm font-medium text-gray-900">{orderDetails?.order?.customer?.name || orderDetails?.order?.custUserId?.name}</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-sm text-gray-600">Email:</span>
+                              <span className="text-sm font-medium text-gray-900">{orderDetails?.order?.customer?.email || orderDetails?.order?.custUserId?.email}</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-sm text-gray-600">Phone:</span>
+                              <span className="text-sm font-medium text-gray-900">{orderDetails?.order?.customer?.phone || orderDetails?.order?.custUserId?.phone}</span>
+                            </div>
+                          </div>
 
-                      <h4 className="text-lg font-medium text-gray-900 mt-4">Vendor Information</h4>
-                      <div className="space-y-3 bg-gray-50 p-4 rounded-lg">
-                        <div className="flex justify-between">
-                          <span className="text-sm text-gray-600">Name:</span>
-                          <span className="text-sm font-medium text-gray-900">{orderDetails?.order?.vendor?.name || orderDetails?.order?.vendorId?.name}</span>
-                  </div>
-                  <div className="flex justify-between">
-                          <span className="text-sm text-gray-600">Email:</span>
-                          <span className="text-sm font-medium text-gray-900">{orderDetails?.order?.vendor?.email || orderDetails?.order?.vendorId?.email}</span>
-                  </div>
-                        <div className="flex justify-between">
-                          <span className="text-sm text-gray-600">Company:</span>
-                          <span className="text-sm font-medium text-gray-900">{orderDetails?.order?.vendor?.companyName || orderDetails?.order?.vendorId?.companyName}</span>
-                </div>
-              </div>
-
-                      <h4 className="text-lg font-medium text-gray-900 mt-4">Delivery / Truck details</h4>
-                      <div className="space-y-3 bg-gray-50 p-4 rounded-lg">
-                        {(() => {
-                          const d = orderDetails?.order?.delivery || orderDetails?.deliveryInfo;
-                          const hasDelivery = d && (d.driverName || d.driverPhone || d.truckNumber || d.vehicleType || d.deliveryStatus);
-                          if (!hasDelivery) {
-                            return (
-                              <p className="text-sm text-gray-500">Not set. Use &quot;Update Status&quot; or &quot;Update Delivery&quot; to add truck details.</p>
-                            );
-                          }
-                          return (
-                          <>
+                          <h4 className="text-lg font-medium text-gray-900 mt-4">Vendor Information</h4>
+                          <div className="space-y-3 bg-gray-50 p-4 rounded-lg">
                             <div className="flex justify-between">
-                              <span className="text-sm text-gray-600">Delivery Status:</span>
-                              <span className="text-sm font-medium text-gray-900">{d.deliveryStatus || orderDetails?.order?.orderStatus || '—'}</span>
+                              <span className="text-sm text-gray-600">Name:</span>
+                              <span className="text-sm font-medium text-gray-900">{orderDetails?.order?.vendor?.name || orderDetails?.order?.vendorId?.name}</span>
                             </div>
                             <div className="flex justify-between">
-                              <span className="text-sm text-gray-600">Driver:</span>
-                              <span className="text-sm font-medium text-gray-900">{d.driverName || '—'}</span>
+                              <span className="text-sm text-gray-600">Email:</span>
+                              <span className="text-sm font-medium text-gray-900">{orderDetails?.order?.vendor?.email || orderDetails?.order?.vendorId?.email}</span>
                             </div>
                             <div className="flex justify-between">
-                              <span className="text-sm text-gray-600">Driver Phone:</span>
-                              <span className="text-sm font-medium text-gray-900">{d.driverPhone || '—'}</span>
+                              <span className="text-sm text-gray-600">Company:</span>
+                              <span className="text-sm font-medium text-gray-900">{orderDetails?.order?.vendor?.companyName || orderDetails?.order?.vendorId?.companyName}</span>
                             </div>
-                            <div className="flex justify-between">
-                              <span className="text-sm text-gray-600">License No:</span>
-                              <span className="text-sm font-medium text-gray-900">{d.driverLicenseNo || '—'}</span>
-                            </div>
-                            <div className="flex justify-between">
-                              <span className="text-sm text-gray-600">Truck Number:</span>
-                              <span className="text-sm font-medium text-gray-900">{d.truckNumber || '—'}</span>
-                            </div>
-                            <div className="flex justify-between">
-                              <span className="text-sm text-gray-600">Vehicle Type:</span>
-                              <span className="text-sm font-medium text-gray-900">{d.vehicleType || '—'}</span>
-                            </div>
-                            <div className="flex justify-between">
-                              <span className="text-sm text-gray-600">Capacity (Tons):</span>
-                              <span className="text-sm font-medium text-gray-900">{(d.capacityTons ?? '—').toString()}</span>
-                            </div>
-                            <div className="flex justify-between">
-                              <span className="text-sm text-gray-600">Start Time:</span>
-                              <span className="text-sm font-medium text-gray-900">{d.startTime ? formatDate(d.startTime) : '—'}</span>
-                            </div>
-                  <div className="flex justify-between">
-                              <span className="text-sm text-gray-600">ETA:</span>
-                              <span className="text-sm font-medium text-gray-900">{d.estimatedArrival ? formatDate(d.estimatedArrival) : '—'}</span>
-                  </div>
-                  <div className="flex justify-between">
-                              <span className="text-sm text-gray-600">Last Location:</span>
-                              <span className="text-sm font-medium text-gray-900">{d.lastLocation?.address || '—'}</span>
-                            </div>
-                            {d.deliveryNotes && (
-                              <div className="flex justify-between">
-                                <span className="text-sm text-gray-600">Notes:</span>
-                                <span className="text-sm font-medium text-gray-900">{d.deliveryNotes}</span>
-                  </div>
-                            )}
-                          </>
-                        );
-                        })()}
-                </div>
-              </div>
+                          </div>
+</div>
+<div>
+                          <h4 className="text-lg font-medium text-gray-900 mt-4">Delivery / Truck details</h4>
+                          <div className="space-y-3 bg-gray-50 p-4 rounded-lg">
+                            {(() => {
+                              const d = orderDetails?.order?.delivery || orderDetails?.deliveryInfo;
+                              const hasDelivery = d && (d.driverName || d.driverPhone || d.truckNumber || d.vehicleType || d.deliveryStatus);
+                              if (!hasDelivery) {
+                                return (
+                                  <p className="text-sm text-gray-500">Not set. Use &quot;Update Status&quot; or &quot;Update Delivery&quot; to add truck details.</p>
+                                );
+                              }
+                              return (
+                                <>
+                                  <div className="flex justify-between">
+                                    <span className="text-sm text-gray-600">Delivery Status:</span>
+                                    <span className="text-sm font-medium text-gray-900">{d.deliveryStatus || orderDetails?.order?.orderStatus || '—'}</span>
+                                  </div>
+                                  <div className="flex justify-between">
+                                    <span className="text-sm text-gray-600">Driver:</span>
+                                    <span className="text-sm font-medium text-gray-900">{d.driverName || '—'}</span>
+                                  </div>
+                                  <div className="flex justify-between">
+                                    <span className="text-sm text-gray-600">Driver Phone:</span>
+                                    <span className="text-sm font-medium text-gray-900">{d.driverPhone || '—'}</span>
+                                  </div>
+                                  <div className="flex justify-between">
+                                    <span className="text-sm text-gray-600">License No:</span>
+                                    <span className="text-sm font-medium text-gray-900">{d.driverLicenseNo || '—'}</span>
+                                  </div>
+                                  <div className="flex justify-between">
+                                    <span className="text-sm text-gray-600">Truck Number:</span>
+                                    <span className="text-sm font-medium text-gray-900">{d.truckNumber || '—'}</span>
+                                  </div>
+                                  <div className="flex justify-between">
+                                    <span className="text-sm text-gray-600">Vehicle Type:</span>
+                                    <span className="text-sm font-medium text-gray-900">{d.vehicleType || '—'}</span>
+                                  </div>
+                                  <div className="flex justify-between">
+                                    <span className="text-sm text-gray-600">Capacity (Tons):</span>
+                                    <span className="text-sm font-medium text-gray-900">{(d.capacityTons ?? '—').toString()}</span>
+                                  </div>
+                                  <div className="flex justify-between">
+                                    <span className="text-sm text-gray-600">Start Time:</span>
+                                    <span className="text-sm font-medium text-gray-900">{d.startTime ? formatDate(d.startTime) : '—'}</span>
+                                  </div>
+                                  <div className="flex justify-between">
+                                    <span className="text-sm text-gray-600">ETA:</span>
+                                    <span className="text-sm font-medium text-gray-900">{d.estimatedArrival ? formatDate(d.estimatedArrival) : '—'}</span>
+                                  </div>
+                                  <div className="flex justify-between">
+                                    <span className="text-sm text-gray-600">Last Location:</span>
+                                    <span className="text-sm font-medium text-gray-900">{d.lastLocation?.address || '—'}</span>
+                                  </div>
+                                  {d.deliveryNotes && (
+                                    <div className="flex justify-between">
+                                      <span className="text-sm text-gray-600">Notes:</span>
+                                      <span className="text-sm font-medium text-gray-900">{d.deliveryNotes}</span>
+                                    </div>
+                                  )}
+                                </>
+                              );
+                            })()}
+                          </div>
+                          </div>
+                        
             </div>
 
                   {/* Order Items */}
@@ -702,6 +704,10 @@ const OrderDetailsModal = ({ isOpen, onClose, order, onOrderUpdate }) => {
                       <div className="flex justify-between">
                         <span className="text-sm text-gray-600">Paid Amount:</span>
                         <span className="text-sm font-medium text-gray-900">{formatCurrency(orderDetails?.paymentInfo?.paidAmount || 0)}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-sm text-gray-600">Customer Paid Amount:</span>
+                        <span className="text-sm font-medium text-gray-900">{formatCurrency(orderDetails?.order?.customerPaymentDetails?.paidAmount  || 0)}</span>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-sm text-gray-600">Payment Status:</span>
