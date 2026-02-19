@@ -34,6 +34,36 @@ class InventoryService {
     }
   }
 
+  async getSubCategories(category) {
+    try {
+      const response = await apiClient.get(
+        `/api/inventory/categories/${encodeURIComponent(category)}/subcategories`
+      )
+      
+      return response.data
+    } catch (error) {
+      throw error
+    }
+  }
+  // Get all inventory items with filters and pagination
+  async getInventoryItemsWOPagination(params = {}) {
+    try {
+      const queryParams = new URLSearchParams()
+  
+      // Add filters
+      if (params.category) queryParams.append('category', params.category)
+      if (params.subCategory) queryParams.append('subCategory', params.subCategory)
+      if (params.vendorId) queryParams.append('vendorId', params.vendorId)
+      if (params.search) queryParams.append('search', params.search)
+      if (params.isActive !== undefined) queryParams.append('isActive', params.isActive)
+      
+      const response = await apiClient.get(`/api/inventory/wopagination?${queryParams.toString()}`)
+      return response.data
+    } catch (error) {
+      throw error
+    }
+  }
+
   // Get single inventory item
   async getInventoryItem(itemId) {
     try {

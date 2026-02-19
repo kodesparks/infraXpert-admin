@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -6,10 +6,16 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import inventoryService from '@/services/inventoryService'
+import orderService from '@/services/orderService'
+
+import { useNavigate } from 'react-router-dom'
+import { states } from '@/components/Constants'
 
 const GenerateLead = () => {
+  const navigate = useNavigate()
   const [formData, setFormData] = useState({
-    category: 'cement',
+    category: 'Cement',
     subcategory: '',
     grade: '',
     quantity: '',
@@ -17,16 +23,20 @@ const GenerateLead = () => {
     estimatedPrice: '',
     customerName: '',
     customerContact: '',
-    preferredDeliveryDate: '',
+    deliveryExpectedDate: '',
     deliveryAddress: '',
     deliveryPincode: '',
     receiverPhoneNumber: '',
     paymentType: 'RTGS',
     notes: '',
-    remarks: ''
+    remarks: '',
+    deliveryCity:'',
+    deliveryState:'',
   })
 
   const [charCount, setCharCount] = useState(0)
+  const [subCategories, setSubCategories] = useState([]);
+  const [inventoryData, setInventoryData] = useState([]);
 
   const getQuantityPlaceholder = (category) => {
     switch (category) {
@@ -41,6 +51,28 @@ const GenerateLead = () => {
     }
   }
 
+  const fetchSubcategories = async () => {
+    if(formData.category) {
+    const data = await inventoryService.getSubCategories(formData.category)
+    console.log(data.subCategories);
+    setSubCategories(data.subCategories);
+      
+    }    
+  };
+
+  useEffect(() => {
+    fetchSubcategories();
+  },[formData.category]);
+
+  const fetchProducts = async() => {
+    console.log('fetchProducts');
+    const response = await inventoryService.getInventoryItems({category: formData.category || 'Cement', subcategory: formData.subcategory});
+    console.log(response);
+    setInventoryData(response.inventory || []);
+  };
+  useEffect(() => {
+    fetchProducts();
+  },[formData.subcategory])
   const handleInputChange = (field, value) => {
     setFormData(prev => ({
       ...prev,
@@ -52,9 +84,18 @@ const GenerateLead = () => {
     }
   }
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault()
-    console.log('Form submitted:', formData)
+    console.log('Form submitted:', {...formData, itemCode: formData.grade});
+    try {
+      await orderService.addToCart({...formData, itemCode: formData.grade, qty: formData.quantity});
+      alert("Lead created Successfully");
+      navigate('/orders', { replace: true })
+    } catch(err) {
+      alert(err.response?.data?.error || 'Failed to generate lead');
+    }
+    
+
     // Handle form submission here
   }
 
@@ -79,9 +120,9 @@ const GenerateLead = () => {
                     <SelectValue placeholder="Select category" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="cement">Cement</SelectItem>
-                    <SelectItem value="steel">Steel</SelectItem>
-                    <SelectItem value="concrete_mix">Concrete Mix</SelectItem>
+                    <SelectItem value="Cement">Cement</SelectItem>
+                    <SelectItem value="Steel">Steel</SelectItem>
+                    <SelectItem value="Concrete Mixer">Concrete Mix</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -91,12 +132,24 @@ const GenerateLead = () => {
                 <Label htmlFor="subcategory" className="block text-sm font-medium text-gray-700 mb-2">
                   Sub Category
                 </Label>
-                <Input
+                <Select value={formData.subcategory} onValueChange={(value) => handleInputChange('subcategory', value)} required>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Select subcategory" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {subCategories.map((item) => {
+                      return <SelectItem key={item} value={item}>{item}</SelectItem>
+                    })}
+                    {/* <SelectItem value="Steel">Steel</SelectItem>
+                    <SelectItem value="Concrete Mixer">Concrete Mix</SelectItem> */}
+                  </SelectContent>
+                </Select>
+                {/* <Input
                   id="subcategory"
                   placeholder="e.g., Portland Cement, TMT Bars"
                   value={formData.subcategory}
                   onChange={(e) => handleInputChange('subcategory', e.target.value)}
-                />
+                /> */}
               </div>
 
               {/* Grade */}
@@ -104,12 +157,24 @@ const GenerateLead = () => {
                 <Label htmlFor="grade" className="block text-sm font-medium text-gray-700 mb-2">
                   Grade
                 </Label>
-                <Input
+                <Select value={formData.grade} onValueChange={(value) => handleInputChange('grade', value)} required>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Select Grade" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {inventoryData.map((item) => {
+                      return <SelectItem key={item.itemDescription} value={item.id}>{item.itemDescription}</SelectItem>
+                    })}
+                    {/* <SelectItem value="Steel">Steel</SelectItem>
+                    <SelectItem value="Concrete Mixer">Concrete Mix</SelectItem> */}
+                  </SelectContent>
+                </Select>
+                {/* <Input
                   id="grade"
                   placeholder="e.g., OPC 53, Fe 500"
                   value={formData.grade}
                   onChange={(e) => handleInputChange('grade', e.target.value)}
-                />
+                /> */}
               </div>
 
               {/* Quantity */}
@@ -190,14 +255,14 @@ const GenerateLead = () => {
 
               {/* Preferred Delivery Date */}
               <div>
-                <Label htmlFor="preferredDeliveryDate" className="block text-sm font-medium text-gray-700 mb-2">
+                <Label htmlFor="deliveryExpectedDate" className="block text-sm font-medium text-gray-700 mb-2">
                   Preferred Delivery Date
                 </Label>
                 <Input
-                  id="preferredDeliveryDate"
+                  id="deliveryExpectedDate"
                   type="date"
-                  value={formData.preferredDeliveryDate}
-                  onChange={(e) => handleInputChange('preferredDeliveryDate', e.target.value)}
+                  value={formData.deliveryExpectedDate}
+                  onChange={(e) => handleInputChange('deliveryExpectedDate', e.target.value)}
                   required
                 />
               </div>
@@ -216,6 +281,52 @@ const GenerateLead = () => {
                   required
                 />
               </div>
+              <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="deliveryCity" className="block text-sm font-medium text-gray-700 mb-2">
+                  Delivery City
+                </Label>
+                      <Input
+                      id="deliveryCity"
+                        name="deliveryCity"
+                        value={formData.deliveryCity}
+                        onChange={(e) => handleInputChange('deliveryCity', e.target.value)}
+                        placeholder="City"
+                        required
+                        // className={errors.city ? 'border-red-500' : ''}
+                      />
+                      {/* {errors.city && (
+                        <p className="text-red-500 text-sm mt-1">{errors.city}</p>
+                      )} */}
+                    </div>
+
+                    <div>
+                      <Label htmlFor="deliveryState" className="block text-sm font-medium text-gray-700 mb-2">
+                  Delivery State
+                </Label>
+                      <select
+                      id="deliveryState"
+                        name="deliveryState"
+                        required
+                        value={formData.deliveryState}
+                        onChange={(e) => handleInputChange('deliveryState', e.target.value)}
+                        // className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                        //   errors.state ? 'border-red-500' : 'border-gray-300'
+                        // }`}
+                      >
+                        <option value="">Select State</option>
+
+                        {states.map((state) => (
+                          <option key={state} value={state}>
+                            {state}
+                          </option>
+                        ))}
+                      </select>
+                      {/* {errors.state && (
+                        <p className="text-red-500 text-sm mt-1">{errors.state}</p>
+                      )} */}
+                    </div>
+                  </div>
 
               {/* Delivery Pincode */}
               <div>
