@@ -471,6 +471,9 @@ const OrderDetailsModal = ({ isOpen, onClose, order, onOrderUpdate }) => {
                         </div>
           ) : (
             <div className="p-6">
+<div className="bg-blue-50 border border-blue-200 text-blue-700 px-4 py-2 rounded-md text-sm mb-4">
+                ℹ️ Ensure receiver details are filled correctly during delivery/truck update to avoid delivery issues.
+              </div>
               {/* Tabs */}
               <div className="flex space-x-4 mb-6 border-b">
                 <button
