@@ -29,6 +29,10 @@ const OrderDetailsModal = ({ isOpen, onClose, order, onOrderUpdate }) => {
   // Delivery modal state (admin sees unmasked delivery object)
   const [showDeliveryModal, setShowDeliveryModal] = useState(false);
   const [deliveryData, setDeliveryData] = useState({
+    receiverName: "",
+    receiverPhone: "",
+    receiverEmail: "",
+    receiverAddress: "",
     deliveryStatus: '',
     driverName: '',
     driverPhone: '',
@@ -120,8 +124,8 @@ const OrderDetailsModal = ({ isOpen, onClose, order, onOrderUpdate }) => {
         truckNumber: d.truckNumber || '',
         vehicleType: d.vehicleType || '',
         capacityTons: d.capacityTons ?? '',
-        startTime: d.startTime ? new Date(d.startTime).toISOString().slice(0,16) : '',
-        estimatedArrival: d.estimatedArrival ? new Date(d.estimatedArrival).toISOString().slice(0,16) : '',
+        startTime: d.startTime ? new Date(d.startTime).toISOString().slice(0, 16) : '',
+        estimatedArrival: d.estimatedArrival ? new Date(d.estimatedArrival).toISOString().slice(0, 16) : '',
         lastLocation: {
           lat: d.lastLocation?.lat ?? '',
           lng: d.lastLocation?.lng ?? '',
@@ -240,7 +244,36 @@ const OrderDetailsModal = ({ isOpen, onClose, order, onOrderUpdate }) => {
     try {
       setActionLoading(true);
 
-      // Validation
+      // 🔹 Receiver Validation
+      if (!deliveryData.receiverName?.trim()) {
+        alert('Receiver name is required');
+        setActionLoading(false);
+        return;
+      }
+
+      if (!deliveryData.receiverPhone?.trim()) {
+        alert('Receiver phone is required');
+        setActionLoading(false);
+        return;
+      }
+
+      const receiverPhone = String(deliveryData.receiverPhone).trim();
+      const receiverPhoneOk =
+        /^\+?[0-9]{10,15}$/.test(receiverPhone) || /^[0-9]{10}$/.test(receiverPhone);
+
+      if (!receiverPhoneOk) {
+        alert('Receiver phone must be 10 digits or E.164');
+        setActionLoading(false);
+        return;
+      }
+
+      if (!deliveryData.receiverAddress?.trim()) {
+        alert('Receiver address is required');
+        setActionLoading(false);
+        return;
+      }
+
+      // 🔹 Driver Phone Validation
       if (deliveryData.driverPhone) {
         const phone = String(deliveryData.driverPhone).trim();
         const phoneOk = /^\+?[0-9]{10,15}$/.test(phone) || /^[0-9]{10}$/.test(phone);
@@ -266,7 +299,19 @@ const OrderDetailsModal = ({ isOpen, onClose, order, onOrderUpdate }) => {
 
       // Build partial payload
       const payload = {};
-      const assignIf = (key, val) => { if (val !== '' && val !== null && val !== undefined) payload[key] = val; };
+      const assignIf = (key, val) => {
+        if (val !== '' && val !== null && val !== undefined) {
+          payload[key] = val;
+        }
+      };
+
+      // ✅ Receiver Data
+      assignIf('receiverName', deliveryData.receiverName);
+      assignIf('receiverPhone', receiverPhone);
+      assignIf('receiverEmail', deliveryData.receiverEmail);
+      assignIf('receiverAddress', deliveryData.receiverAddress);
+
+      // ✅ Existing Fields
       assignIf('deliveryStatus', deliveryData.deliveryStatus);
       assignIf('driverName', deliveryData.driverName);
       assignIf('driverPhone', deliveryData.driverPhone);
@@ -910,10 +955,55 @@ const OrderDetailsModal = ({ isOpen, onClose, order, onOrderUpdate }) => {
 
       {/* Delivery Modal */}
       {showDeliveryModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[110] p-4">
-          <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6 relative z-[111]">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[110] p-4 overflow-y-auto">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6 relative z-[111] max-h-[90vh] overflow-y-auto">
             <h3 className="text-lg font-semibold mb-4">Update Delivery Information</h3>
+
             <div className="space-y-4">
+
+              {/* 🔹 Receiver Information Section */}
+              <div className="border p-4 rounded-md">
+                <h4 className="font-medium mb-3">Receiver Information</h4>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <Label>Full Name *</Label>
+                    <Input
+                      value={deliveryData.receiverName || ""}
+                      onChange={e => setDeliveryData({ ...deliveryData, receiverName: e.target.value })}
+                    />
+                  </div>
+
+                  <div>
+                    <Label>Receiver Phone *</Label>
+                    <Input
+                      value={deliveryData.receiverPhone || ""}
+                      onChange={e => setDeliveryData({ ...deliveryData, receiverPhone: e.target.value })}
+                      placeholder="10-digit or +E.164"
+                    />
+                  </div>
+
+                  <div>
+                    <Label>Email</Label>
+                    <Input
+                      type="email"
+                      value={deliveryData.receiverEmail || ""}
+                      onChange={e => setDeliveryData({ ...deliveryData, receiverEmail: e.target.value })}
+                    />
+                  </div>
+
+                  <div className="md:col-span-2">
+                    <Label>Delivery Address *</Label>
+                    <Textarea
+                      rows={2}
+                      value={deliveryData.receiverAddress || ""}
+                      onChange={e => setDeliveryData({ ...deliveryData, receiverAddress: e.target.value })}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* 🔹 Existing Delivery Section */}
               <div>
                 <Label>Delivery Status</Label>
                 <Select value={deliveryData.deliveryStatus} onValueChange={(value) => setDeliveryData({ ...deliveryData, deliveryStatus: value })}>
@@ -947,45 +1037,56 @@ const OrderDetailsModal = ({ isOpen, onClose, order, onOrderUpdate }) => {
                   <Label>Truck Number</Label>
                   <Input value={deliveryData.truckNumber} onChange={e => setDeliveryData({ ...deliveryData, truckNumber: e.target.value })} placeholder="e.g., TS09AB1234" />
                 </div>
+
                 <div>
                   <Label>Vehicle Type</Label>
                   <Input value={deliveryData.vehicleType} onChange={e => setDeliveryData({ ...deliveryData, vehicleType: e.target.value })} placeholder="e.g., 12T Truck" />
                 </div>
+
                 <div>
                   <Label>Capacity (Tons)</Label>
-                  <Input type="number" step="any" value={deliveryData.capacityTons} onChange={e => setDeliveryData({ ...deliveryData, capacityTons: e.target.value })} />
+                  <Input type="number" value={deliveryData.capacityTons} onChange={e => setDeliveryData({ ...deliveryData, capacityTons: e.target.value })} />
                 </div>
+
                 <div>
                   <Label>Start Time</Label>
                   <Input type="datetime-local" value={deliveryData.startTime} onChange={e => setDeliveryData({ ...deliveryData, startTime: e.target.value })} />
                 </div>
+
                 <div>
                   <Label>Estimated Arrival</Label>
                   <Input type="datetime-local" value={deliveryData.estimatedArrival} onChange={e => setDeliveryData({ ...deliveryData, estimatedArrival: e.target.value })} />
                 </div>
+
               <div>
                   <Label>Last Location Latitude</Label>
-                  <Input type="number" step="any" value={deliveryData.lastLocation.lat} onChange={e => setDeliveryData({ ...deliveryData, lastLocation: { ...deliveryData.lastLocation, lat: e.target.value } })} />
+                  <Input type="number" value={deliveryData.lastLocation.lat} onChange={e => setDeliveryData({ ...deliveryData, lastLocation: { ...deliveryData.lastLocation, lat: e.target.value } })} />
                 </div>
+
                 <div>
                   <Label>Last Location Longitude</Label>
-                  <Input type="number" step="any" value={deliveryData.lastLocation.lng} onChange={e => setDeliveryData({ ...deliveryData, lastLocation: { ...deliveryData.lastLocation, lng: e.target.value } })} />
+                  <Input type="number" value={deliveryData.lastLocation.lng} onChange={e => setDeliveryData({ ...deliveryData, lastLocation: { ...deliveryData.lastLocation, lng: e.target.value } })} />
                 </div>
+
                 <div className="md:col-span-2">
                   <Label>Last Location Address</Label>
                   <Input value={deliveryData.lastLocation.address} onChange={e => setDeliveryData({ ...deliveryData, lastLocation: { ...deliveryData.lastLocation, address: e.target.value } })} />
                   </div>
+
                 <div className="md:col-span-2">
                   <Label>Delivery Notes</Label>
                   <Textarea rows={3} value={deliveryData.deliveryNotes} onChange={e => setDeliveryData({ ...deliveryData, deliveryNotes: e.target.value })} />
                 </div>
               </div>
             </div>
+
+            {/* Buttons */}
             <div className="flex gap-3 mt-6">
               <Button onClick={handleUpdateDelivery} className="flex-1" disabled={actionLoading}>
                 {actionLoading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Truck className="w-4 h-4 mr-2" />}
                 Update Delivery
               </Button>
+
               <Button onClick={() => setShowDeliveryModal(false)} variant="outline" className="flex-1">
                 Cancel
               </Button>
