@@ -14,6 +14,7 @@ const OrderDetailsModal = ({ isOpen, onClose, order, onOrderUpdate }) => {
   const [loading, setLoading] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [isShippingModalOpen, setIsShippingModalOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('details'); // details, payment, delivery, status
 
   // Payment modal state
@@ -60,7 +61,14 @@ const OrderDetailsModal = ({ isOpen, onClose, order, onOrderUpdate }) => {
     vehicleType: '',
     capacityTons: '',
     deliveryNotes: '',
-    items:[]
+    items: [],
+    //Shipping Details
+    shippingFullName: '',
+    shippingPhoneNumber: '',
+    shippingMail: '',
+    shippingDeliveryAddress:'',
+    shippingState: '',
+    shippingPincode: ''
   });
 
   // Cancel order state
@@ -99,7 +107,13 @@ const OrderDetailsModal = ({ isOpen, onClose, order, onOrderUpdate }) => {
           qty: item.qty,
           unitPrice: item.unitPrice || '',
           loadingCharges: item.loadingCharges || ''
-        }))
+        })),
+        shippingFullName: '',
+        shippingPhoneNumber: '',
+        shippingMail: '',
+        shippingDeliveryAddress:'',
+        shippingState: '',
+        shippingPincode: ''
       });
     }
   }, [showStatusModal]);
@@ -204,6 +218,45 @@ const OrderDetailsModal = ({ isOpen, onClose, order, onOrderUpdate }) => {
           return;
         }
       }
+
+      if (!statusData.shippingFullName?.trim()) {
+        alert("Shipping details: name is required");
+        return;
+      }
+
+      // Phone
+      const phone = statusData.shippingPhoneNumber?.trim();
+      if (!phone || !/^\+?[0-9]{10,15}$/.test(phone)) {
+        alert("Shipping details: Enter valid phone number");
+        return;
+      }
+
+      // Address
+      if (!statusData.shippingDeliveryAddress?.trim()) {
+        alert("Shipping details: Delivery address is required");
+        return;
+      }
+
+      // State
+      if (!statusData.shippingState) {
+        alert("Shipping details: Please select state");
+        return;
+      }
+
+      // Pincode
+      if (!/^[0-9]{6}$/.test(statusData.shippingPincode)) {
+        alert("Shipping details: Enter valid 6-digit pincode");
+        return;
+      }
+
+      // Email (optional but validate if given)
+      if (
+        !statusData.shippingMail ||
+        !/^\S+@\S+\.\S+$/.test(statusData.shippingMail)
+      ) {
+        alert("Shipping details: Enter valid email");
+        return;
+      }
       }
     
     try {
@@ -218,7 +271,14 @@ const OrderDetailsModal = ({ isOpen, onClose, order, onOrderUpdate }) => {
             unitPrice: Number(item.unitPrice),
             loadingCharges: Number(item.loadingCharges || 0)
           }))
-        })
+        }),
+        
+        ...(statusData.shippingFullName && {receiverName: statusData.shippingFullName}),
+        ...(statusData.shippingPhoneNumber && {receiverMobileNum: statusData.shippingPhoneNumber}),
+        ...(statusData.shippingMail && {email: statusData.shippingMail}),
+        ...(statusData.shippingPincode && {deliveryPincode: statusData.shippingPincode}),
+        ...(statusData.shippingState && {deliveryState: statusData.shippingState}),
+        ...(statusData.shippingDeliveryAddress && {deliveryAddress: statusData.shippingDeliveryAddress}),
       };
       const truckFields = ['driverName', 'driverPhone', 'driverLicenseNo', 'truckNumber', 'vehicleType', 'deliveryNotes'];
       truckFields.forEach(key => {
@@ -243,29 +303,6 @@ const OrderDetailsModal = ({ isOpen, onClose, order, onOrderUpdate }) => {
   const handleUpdateDelivery = async () => {
     try {
       setActionLoading(true);
-
-      // 🔹 Receiver Validation
-      if (!deliveryData.receiverName?.trim()) {
-        alert('Receiver name is required');
-        setActionLoading(false);
-        return;
-      }
-
-      if (!deliveryData.receiverPhone?.trim()) {
-        alert('Receiver phone is required');
-        setActionLoading(false);
-        return;
-      }
-
-      const receiverPhone = String(deliveryData.receiverPhone).trim();
-      const receiverPhoneOk =
-        /^\+?[0-9]{10,15}$/.test(receiverPhone) || /^[0-9]{10}$/.test(receiverPhone);
-
-      if (!receiverPhoneOk) {
-        alert('Receiver phone must be 10 digits or E.164');
-        setActionLoading(false);
-        return;
-      }
 
       if (!deliveryData.receiverAddress?.trim()) {
         alert('Receiver address is required');
@@ -304,12 +341,6 @@ const OrderDetailsModal = ({ isOpen, onClose, order, onOrderUpdate }) => {
           payload[key] = val;
         }
       };
-
-      // ✅ Receiver Data
-      assignIf('receiverName', deliveryData.receiverName);
-      assignIf('receiverPhone', receiverPhone);
-      assignIf('receiverEmail', deliveryData.receiverEmail);
-      assignIf('receiverAddress', deliveryData.receiverAddress);
 
       // ✅ Existing Fields
       assignIf('deliveryStatus', deliveryData.deliveryStatus);
@@ -471,9 +502,6 @@ const OrderDetailsModal = ({ isOpen, onClose, order, onOrderUpdate }) => {
                         </div>
           ) : (
             <div className="p-6">
-<div className="bg-blue-50 border border-blue-200 text-blue-700 px-4 py-2 rounded-md text-sm mb-4">
-                ℹ️ Ensure receiver details are filled correctly during delivery/truck update to avoid delivery issues.
-              </div>
               {/* Tabs */}
               <div className="flex space-x-4 mb-6 border-b">
                 <button
@@ -963,49 +991,6 @@ const OrderDetailsModal = ({ isOpen, onClose, order, onOrderUpdate }) => {
             <h3 className="text-lg font-semibold mb-4">Update Delivery Information</h3>
 
             <div className="space-y-4">
-
-              {/* 🔹 Receiver Information Section */}
-              <div className="border p-4 rounded-md">
-                <h4 className="font-medium mb-3">Receiver Information</h4>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <Label>Full Name *</Label>
-                    <Input
-                      value={deliveryData.receiverName || ""}
-                      onChange={e => setDeliveryData({ ...deliveryData, receiverName: e.target.value })}
-                    />
-                  </div>
-
-                  <div>
-                    <Label>Receiver Phone *</Label>
-                    <Input
-                      value={deliveryData.receiverPhone || ""}
-                      onChange={e => setDeliveryData({ ...deliveryData, receiverPhone: e.target.value })}
-                      placeholder="10-digit or +E.164"
-                    />
-                  </div>
-
-                  <div>
-                    <Label>Email</Label>
-                    <Input
-                      type="email"
-                      value={deliveryData.receiverEmail || ""}
-                      onChange={e => setDeliveryData({ ...deliveryData, receiverEmail: e.target.value })}
-                    />
-                  </div>
-
-                  <div className="md:col-span-2">
-                    <Label>Delivery Address *</Label>
-                    <Textarea
-                      rows={2}
-                      value={deliveryData.receiverAddress || ""}
-                      onChange={e => setDeliveryData({ ...deliveryData, receiverAddress: e.target.value })}
-                    />
-                  </div>
-                </div>
-              </div>
-
               {/* 🔹 Existing Delivery Section */}
               <div>
                 <Label>Delivery Status</Label>
@@ -1120,7 +1105,7 @@ const OrderDetailsModal = ({ isOpen, onClose, order, onOrderUpdate }) => {
                 </Select>
               </div>
               {statusData.orderStatus === 'vendor_accepted' && (
-                <div className="mt-4">
+                <div className="mt-4 flex gap-3">
                   <Button
                     type="button"
                     onClick={() => setIsPriceModalOpen(true)}
@@ -1128,7 +1113,15 @@ const OrderDetailsModal = ({ isOpen, onClose, order, onOrderUpdate }) => {
                   >
                     Add Prices
                   </Button>
+                  <Button
+                    type="button"
+                    onClick={() => setIsShippingModalOpen(true)}
+                    className="bg-green-600 text-white"
+                  >
+                    Add Shipping Details
+                  </Button>
                 </div>
+                 
               )} 
               <Separator className="my-4" />
               <div>
@@ -1345,6 +1338,119 @@ const OrderDetailsModal = ({ isOpen, onClose, order, onOrderUpdate }) => {
       </div>
     )}
 
+      {isShippingModalOpen && (
+  <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 overflow-y-auto  z-[9999]">
+
+    <div className="bg-white rounded-lg shadow-xl w-full max-w-lg p-6 max-h-[90vh] overflow-y-auto">
+
+      <h3 className="text-lg font-semibold mb-4">Shipping Details</h3>
+
+      <div className="space-y-4">
+
+        {/* 🔹 Receiver Info */}
+        <div className="border p-4 rounded-md">
+          {/* <h4 className="font-medium mb-3">Receiver Information</h4> */}
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+
+            <div>
+              <Label>Full Name </Label>
+              <Input
+                value={statusData.shippingFullName || ""}
+                onChange={e =>
+                  setStatusData({ ...statusData, shippingFullName: e.target.value })
+                }
+              />
+            </div>
+
+            <div>
+              <Label>Phone </Label>
+              <Input
+                value={statusData.shippingPhoneNumber || ""}
+                onChange={e =>
+                  setStatusData({ ...statusData, shippingPhoneNumber: e.target.value })
+                }
+              />
+            </div>
+
+            <div>
+              <Label>Email</Label>
+              <Input
+                type="email"
+                value={statusData.shippingMail || ""}
+                onChange={e =>
+                  setStatusData({ ...statusData, shippingMail: e.target.value })
+                }
+              />
+            </div>
+
+            <div>
+              <Label>State</Label>
+              <select
+                value={statusData.shippingState || ""}
+                onChange={e =>
+                  setStatusData({ ...statusData, shippingState: e.target.value })
+                }
+                className="w-full border rounded-md p-2"
+              >
+                <option value="">Select State</option>
+                
+                                        {states.map((state) => (
+                                          <option key={state} value={state}>
+                                            {state}
+                                          </option>
+                                        ))}
+              </select>
+            </div>
+
+            <div>
+              <Label>Pincode </Label>
+              <Input
+                value={statusData.shippingPincode || ""}
+                onChange={e =>
+                  setStatusData({ ...statusData, shippingPincode: e.target.value })
+                }
+                maxLength={6}
+              />
+            </div>
+
+            <div className="md:col-span-2">
+              <Label>Delivery Address </Label>
+              <Textarea
+                rows={2}
+                value={statusData.shippingDeliveryAddress || ""}
+                onChange={e =>
+                  setStatusData({ ...statusData, shippingDeliveryAddress: e.target.value })
+                }
+              />
+            </div>
+
+          </div>
+        </div>
+
+      </div>
+
+      {/* Buttons */}
+      <div className="flex gap-3 mt-6">
+        <Button onClick={() => {
+            setIsShippingModalOpen(false);        
+            console.log('details',statusData);
+          }} className="flex-1 bg-green-600 text-white">
+          Save
+        </Button>
+
+        <Button
+          onClick={() => setIsShippingModalOpen(false)}
+          variant="outline"
+          className="flex-1"
+        >
+          Cancel
+        </Button>
+      </div>
+
+    </div>
+  </div>
+)}
     </>
   );
 };
