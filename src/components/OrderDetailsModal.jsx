@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
 import orderService from "@/services/orderService";
+import OrderConfirmation from "./ConfirmOrder";
 import { states } from "./Constants";
 
 const OrderDetailsModal = ({ isOpen, onClose, order, onOrderUpdate }) => {
@@ -180,17 +181,18 @@ const OrderDetailsModal = ({ isOpen, onClose, order, onOrderUpdate }) => {
     }
   };
 
-  const handleConfirmOrder = async () => {
+  const handleConfirmOrder = async (data) => {
     if (!window.confirm('Are you sure you want to confirm this order?')) return;
 
     try {
       setActionLoading(true);
       await orderService.confirmOrder(order.leadId, {
+        ...data,
         remarks: 'Order confirmed by admin after payment verification'
       });
-      alert('Order confirmed successfully!');
-      await fetchOrderDetails();
-      if (onOrderUpdate) onOrderUpdate();
+      // alert('Order confirmed successfully!');
+      // await fetchOrderDetails();
+      // if (onOrderUpdate) onOrderUpdate();
     } catch (err) {
       console.error('Error confirming order:', err);
       alert(err.response?.data?.message || 'Failed to confirm order');
@@ -205,6 +207,8 @@ const OrderDetailsModal = ({ isOpen, onClose, order, onOrderUpdate }) => {
       return;
     }
     if (statusData.orderStatus === 'vendor_accepted') {
+
+
       for (const item of statusData.items) {
         const unitPrice = Number(item.unitPrice);
         const loadingCharges = Number(item.loadingCharges);
@@ -258,15 +262,15 @@ const OrderDetailsModal = ({ isOpen, onClose, order, onOrderUpdate }) => {
         alert("Shipping details: Enter valid email");
         return;
       }
-      }
-    
+    }
+
     try {
       setActionLoading(true);
       const payload = {
         orderStatus: statusData.orderStatus,
         ...(statusData.remarks && { remarks: statusData.remarks }),
 
-        ...(statusData.orderStatus === 'vendor_accepted' && {
+        ...(statusData.orderStatus === 'vendor_accepted' && {          
           items: statusData.items.map(item => ({
             itemCode: item.itemCode,
             unitPrice: Number(item.unitPrice),
@@ -314,28 +318,35 @@ const OrderDetailsModal = ({ isOpen, onClose, order, onOrderUpdate }) => {
       // 🔹 Driver Phone Validation
       if (deliveryData.driverPhone) {
         const phone = String(deliveryData.driverPhone).trim();
-        const phoneOk = /^\+?[0-9]{10,15}$/.test(phone) || /^[0-9]{10}$/.test(phone);
+        const phoneOk =
+          /^\+?[0-9]{10,15}$/.test(phone) || /^[0-9]{10}$/.test(phone);
+
         if (!phoneOk) {
           alert('Driver phone must be 10 digits or E.164');
           setActionLoading(false);
           return;
         }
       }
-      const reqTruck = ['truck_loading','in_transit','out_for_delivery','delivered'];
+
+      // 🔹 Truck Required Validation
+      const reqTruck = ['truck_loading', 'in_transit', 'out_for_delivery', 'delivered'];
       if (reqTruck.includes(deliveryData.deliveryStatus) && !deliveryData.truckNumber) {
-        alert('Truck number is required when status is Truck loading/In transit/Out for delivery/Delivered');
-        setActionLoading(false);
-        return;
-      }
-      const hasLat = deliveryData.lastLocation?.lat !== '' && deliveryData.lastLocation?.lat !== null && deliveryData.lastLocation?.lat !== undefined;
-      const hasLng = deliveryData.lastLocation?.lng !== '' && deliveryData.lastLocation?.lng !== null && deliveryData.lastLocation?.lng !== undefined;
-      if ((hasLat && !hasLng) || (!hasLat && hasLng)) {
-        alert('Provide both latitude and longitude for last location');
+        alert('Truck number is required for this status');
         setActionLoading(false);
         return;
       }
 
-      // Build partial payload
+      // 🔹 Location Validation
+      const hasLat = deliveryData.lastLocation?.lat !== '' && deliveryData.lastLocation?.lat !== null && deliveryData.lastLocation?.lat !== undefined;
+      const hasLng = deliveryData.lastLocation?.lng !== '' && deliveryData.lastLocation?.lng !== null && deliveryData.lastLocation?.lng !== undefined;
+
+      if ((hasLat && !hasLng) || (!hasLat && hasLng)) {
+        alert('Provide both latitude and longitude');
+        setActionLoading(false);
+        return;
+      }
+
+      // 🔹 Build Payload
       const payload = {};
       const assignIf = (key, val) => {
         if (val !== '' && val !== null && val !== undefined) {
@@ -350,28 +361,40 @@ const OrderDetailsModal = ({ isOpen, onClose, order, onOrderUpdate }) => {
       assignIf('driverLicenseNo', deliveryData.driverLicenseNo);
       assignIf('truckNumber', deliveryData.truckNumber);
       assignIf('vehicleType', deliveryData.vehicleType);
+
       if (deliveryData.capacityTons !== '' && !Number.isNaN(parseFloat(deliveryData.capacityTons))) {
         payload.capacityTons = parseFloat(deliveryData.capacityTons);
       }
+
       if (deliveryData.startTime) {
         payload.startTime = new Date(deliveryData.startTime).toISOString();
       }
+
       if (deliveryData.estimatedArrival) {
         payload.estimatedArrival = new Date(deliveryData.estimatedArrival).toISOString();
       }
+
       if (hasLat && hasLng || deliveryData.lastLocation?.address) {
-        payload.lastLocation = {}
-        if (hasLat) payload.lastLocation.lat = parseFloat(deliveryData.lastLocation.lat)
-        if (hasLng) payload.lastLocation.lng = parseFloat(deliveryData.lastLocation.lng)
-        if (deliveryData.lastLocation.address) payload.lastLocation.address = deliveryData.lastLocation.address
+        payload.lastLocation = {};
+
+        if (hasLat) payload.lastLocation.lat = parseFloat(deliveryData.lastLocation.lat);
+        if (hasLng) payload.lastLocation.lng = parseFloat(deliveryData.lastLocation.lng);
+        if (deliveryData.lastLocation.address) {
+          payload.lastLocation.address = deliveryData.lastLocation.address;
+        }
       }
+
       assignIf('deliveryNotes', deliveryData.deliveryNotes);
 
+      // 🔹 API Call
       await orderService.updateDelivery(order.leadId, payload);
+
       alert('Delivery information updated successfully!');
       setShowDeliveryModal(false);
+
       await fetchOrderDetails();
       if (onOrderUpdate) onOrderUpdate();
+
     } catch (err) {
       console.error('Error updating delivery:', err);
       alert(err.response?.data?.message || 'Failed to update delivery');
@@ -474,33 +497,33 @@ const OrderDetailsModal = ({ isOpen, onClose, order, onOrderUpdate }) => {
           {/* Header */}
           <div className="sticky top-0 bg-white border-b p-6 flex items-center justify-between z-10">
             <div>
-            <h3 className="text-xl font-semibold text-gray-900">
+              <h3 className="text-xl font-semibold text-gray-900">
                 Order Details - {orderDetails?.order?.formattedLeadId || orderDetails?.order?.leadId || order.formattedLeadId || order.leadId}
-            </h3>
+              </h3>
               <div className="flex items-center gap-2 mt-2">
                 {orderDetails?.order?.orderStatus && getStatusBadge(orderDetails.order.orderStatus)}
                 <Badge className={orderDetails?.paymentInfo?.paymentStatus === 'completed' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}>
                   Payment: {orderDetails?.paymentInfo?.paymentStatus || 'Pending'}
                 </Badge>
               </div>
+            </div>
+            <button
+              onClick={onClose}
+              className="w-8 h-8 flex items-center justify-center text-gray-400 hover:text-gray-600 cursor-pointer"
+            >
+              <X className="w-5 h-5" />
+            </button>
           </div>
-          <button
-            onClick={onClose}
-            className="w-8 h-8 flex items-center justify-center text-gray-400 hover:text-gray-600 cursor-pointer"
-          >
-            <X className="w-5 h-5" />
-          </button>
-        </div>
 
           {loading ? (
             <div className="flex items-center justify-center py-12">
               <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
               <span className="ml-3 text-gray-600">Loading order details...</span>
-                      </div>
+            </div>
           ) : error ? (
             <div className="text-center py-12">
               <p className="text-red-600">{error}</p>
-                        </div>
+            </div>
           ) : (
             <div className="p-6">
               {/* Tabs */}
@@ -518,17 +541,23 @@ const OrderDetailsModal = ({ isOpen, onClose, order, onOrderUpdate }) => {
                   Payment Info
                 </button>
                 <button
+                  onClick={() => setActiveTab('confirmOrder')}
+                  className={`pb-2 px-4 font-medium ${activeTab === 'confirmOrder' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-600'}`}
+                >
+                  Order Confirmation
+                </button>
+                <button
                   onClick={() => setActiveTab('status')}
                   className={`pb-2 px-4 font-medium ${activeTab === 'status' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-600'}`}
                 >
                   Status History
                 </button>
-          </div>
+              </div>
 
               {/* Tab Content */}
               {activeTab === 'details' && (
                 <div className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     {/* Order Information */}
                     {/* <div className="space-y-4">
                       <h4 className="text-lg font-medium text-gray-900">Order Information</h4>
@@ -567,105 +596,105 @@ const OrderDetailsModal = ({ isOpen, onClose, order, onOrderUpdate }) => {
                   </div> */}
 
                     {/* Customer Information */}
-                        <div className="space-y-6">
-                          <h4 className="text-lg font-medium text-gray-900">Customer Information</h4>
-                          <div className="space-y-3 bg-gray-50 p-4 rounded-lg">
-                            <div className="flex justify-between">
-                              <span className="text-sm text-gray-600">Name:</span>
-                              <span className="text-sm font-medium text-gray-900">{orderDetails?.order?.customer?.name || orderDetails?.order?.custUserId?.name}</span>
-                            </div>
-                            <div className="flex justify-between">
-                              <span className="text-sm text-gray-600">Email:</span>
-                              <span className="text-sm font-medium text-gray-900">{orderDetails?.order?.customer?.email || orderDetails?.order?.custUserId?.email}</span>
-                            </div>
-                            <div className="flex justify-between">
-                              <span className="text-sm text-gray-600">Phone:</span>
-                              <span className="text-sm font-medium text-gray-900">{orderDetails?.order?.customer?.phone || orderDetails?.order?.custUserId?.phone}</span>
-                            </div>
-                          </div>
+                    <div className="space-y-6">
+                      <h4 className="text-lg font-medium text-gray-900">Customer Information</h4>
+                      <div className="space-y-3 bg-gray-50 p-4 rounded-lg">
+                        <div className="flex justify-between">
+                          <span className="text-sm text-gray-600">Name:</span>
+                          <span className="text-sm font-medium text-gray-900">{orderDetails?.order?.customer?.name || orderDetails?.order?.custUserId?.name}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-sm text-gray-600">Email:</span>
+                          <span className="text-sm font-medium text-gray-900">{orderDetails?.order?.customer?.email || orderDetails?.order?.custUserId?.email}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-sm text-gray-600">Phone:</span>
+                          <span className="text-sm font-medium text-gray-900">{orderDetails?.order?.customer?.phone || orderDetails?.order?.custUserId?.phone}</span>
+                        </div>
+                      </div>
 
-                          <h4 className="text-lg font-medium text-gray-900 mt-4">Vendor Information</h4>
-                          <div className="space-y-3 bg-gray-50 p-4 rounded-lg">
-                            <div className="flex justify-between">
-                              <span className="text-sm text-gray-600">Name:</span>
-                              <span className="text-sm font-medium text-gray-900">{orderDetails?.order?.vendor?.name || orderDetails?.order?.vendorId?.name}</span>
-                            </div>
-                            <div className="flex justify-between">
-                              <span className="text-sm text-gray-600">Email:</span>
-                              <span className="text-sm font-medium text-gray-900">{orderDetails?.order?.vendor?.email || orderDetails?.order?.vendorId?.email}</span>
-                            </div>
-                            <div className="flex justify-between">
-                              <span className="text-sm text-gray-600">Company:</span>
-                              <span className="text-sm font-medium text-gray-900">{orderDetails?.order?.vendor?.companyName || orderDetails?.order?.vendorId?.companyName}</span>
-                            </div>
-                          </div>
-</div>
-<div>
-                          <h4 className="text-lg font-medium text-gray-900 mt-4">Delivery / Truck details</h4>
-                          <div className="space-y-3 bg-gray-50 p-4 rounded-lg">
-                            {(() => {
-                              const d = orderDetails?.order?.delivery || orderDetails?.deliveryInfo;
-                              const hasDelivery = d && (d.driverName || d.driverPhone || d.truckNumber || d.vehicleType || d.deliveryStatus);
-                              if (!hasDelivery) {
-                                return (
-                                  <p className="text-sm text-gray-500">Not set. Use &quot;Update Status&quot; or &quot;Update Delivery&quot; to add truck details.</p>
-                                );
-                              }
-                              return (
-                                <>
-                                  <div className="flex justify-between">
-                                    <span className="text-sm text-gray-600">Delivery Status:</span>
-                                    <span className="text-sm font-medium text-gray-900">{d.deliveryStatus || orderDetails?.order?.orderStatus || '—'}</span>
-                                  </div>
-                                  <div className="flex justify-between">
-                                    <span className="text-sm text-gray-600">Driver:</span>
-                                    <span className="text-sm font-medium text-gray-900">{d.driverName || '—'}</span>
-                                  </div>
-                                  <div className="flex justify-between">
-                                    <span className="text-sm text-gray-600">Driver Phone:</span>
-                                    <span className="text-sm font-medium text-gray-900">{d.driverPhone || '—'}</span>
-                                  </div>
-                                  <div className="flex justify-between">
-                                    <span className="text-sm text-gray-600">License No:</span>
-                                    <span className="text-sm font-medium text-gray-900">{d.driverLicenseNo || '—'}</span>
-                                  </div>
-                                  <div className="flex justify-between">
-                                    <span className="text-sm text-gray-600">Truck Number:</span>
-                                    <span className="text-sm font-medium text-gray-900">{d.truckNumber || '—'}</span>
-                                  </div>
-                                  <div className="flex justify-between">
-                                    <span className="text-sm text-gray-600">Vehicle Type:</span>
-                                    <span className="text-sm font-medium text-gray-900">{d.vehicleType || '—'}</span>
-                                  </div>
-                                  <div className="flex justify-between">
-                                    <span className="text-sm text-gray-600">Capacity (Tons):</span>
-                                    <span className="text-sm font-medium text-gray-900">{(d.capacityTons ?? '—').toString()}</span>
-                                  </div>
-                                  <div className="flex justify-between">
-                                    <span className="text-sm text-gray-600">Start Time:</span>
-                                    <span className="text-sm font-medium text-gray-900">{d.startTime ? formatDate(d.startTime) : '—'}</span>
-                                  </div>
-                                  <div className="flex justify-between">
-                                    <span className="text-sm text-gray-600">ETA:</span>
-                                    <span className="text-sm font-medium text-gray-900">{d.estimatedArrival ? formatDate(d.estimatedArrival) : '—'}</span>
-                                  </div>
-                                  <div className="flex justify-between">
-                                    <span className="text-sm text-gray-600">Last Location:</span>
-                                    <span className="text-sm font-medium text-gray-900">{d.lastLocation?.address || '—'}</span>
-                                  </div>
-                                  {d.deliveryNotes && (
-                                    <div className="flex justify-between">
-                                      <span className="text-sm text-gray-600">Notes:</span>
-                                      <span className="text-sm font-medium text-gray-900">{d.deliveryNotes}</span>
-                                    </div>
-                                  )}
-                                </>
-                              );
-                            })()}
-                          </div>
-                          </div>
-                        
-            </div>
+                      <h4 className="text-lg font-medium text-gray-900 mt-4">Vendor Information</h4>
+                      <div className="space-y-3 bg-gray-50 p-4 rounded-lg">
+                        <div className="flex justify-between">
+                          <span className="text-sm text-gray-600">Name:</span>
+                          <span className="text-sm font-medium text-gray-900">{orderDetails?.order?.vendor?.name || orderDetails?.order?.vendorId?.name}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-sm text-gray-600">Email:</span>
+                          <span className="text-sm font-medium text-gray-900">{orderDetails?.order?.vendor?.email || orderDetails?.order?.vendorId?.email}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-sm text-gray-600">Company:</span>
+                          <span className="text-sm font-medium text-gray-900">{orderDetails?.order?.vendor?.companyName || orderDetails?.order?.vendorId?.companyName}</span>
+                        </div>
+                      </div>
+                    </div>
+                    <div>
+                      <h4 className="text-lg font-medium text-gray-900 mt-4">Delivery / Truck details</h4>
+                      <div className="space-y-3 bg-gray-50 p-4 rounded-lg">
+                        {(() => {
+                          const d = orderDetails?.order?.delivery || orderDetails?.deliveryInfo;
+                          const hasDelivery = d && (d.driverName || d.driverPhone || d.truckNumber || d.vehicleType || d.deliveryStatus);
+                          if (!hasDelivery) {
+                            return (
+                              <p className="text-sm text-gray-500">Not set. Use &quot;Update Status&quot; or &quot;Update Delivery&quot; to add truck details.</p>
+                            );
+                          }
+                          return (
+                            <>
+                              <div className="flex justify-between">
+                                <span className="text-sm text-gray-600">Delivery Status:</span>
+                                <span className="text-sm font-medium text-gray-900">{d.deliveryStatus || orderDetails?.order?.orderStatus || '—'}</span>
+                              </div>
+                              <div className="flex justify-between">
+                                <span className="text-sm text-gray-600">Driver:</span>
+                                <span className="text-sm font-medium text-gray-900">{d.driverName || '—'}</span>
+                              </div>
+                              <div className="flex justify-between">
+                                <span className="text-sm text-gray-600">Driver Phone:</span>
+                                <span className="text-sm font-medium text-gray-900">{d.driverPhone || '—'}</span>
+                              </div>
+                              <div className="flex justify-between">
+                                <span className="text-sm text-gray-600">License No:</span>
+                                <span className="text-sm font-medium text-gray-900">{d.driverLicenseNo || '—'}</span>
+                              </div>
+                              <div className="flex justify-between">
+                                <span className="text-sm text-gray-600">Truck Number:</span>
+                                <span className="text-sm font-medium text-gray-900">{d.truckNumber || '—'}</span>
+                              </div>
+                              <div className="flex justify-between">
+                                <span className="text-sm text-gray-600">Vehicle Type:</span>
+                                <span className="text-sm font-medium text-gray-900">{d.vehicleType || '—'}</span>
+                              </div>
+                              <div className="flex justify-between">
+                                <span className="text-sm text-gray-600">Capacity (Tons):</span>
+                                <span className="text-sm font-medium text-gray-900">{(d.capacityTons ?? '—').toString()}</span>
+                              </div>
+                              <div className="flex justify-between">
+                                <span className="text-sm text-gray-600">Start Time:</span>
+                                <span className="text-sm font-medium text-gray-900">{d.startTime ? formatDate(d.startTime) : '—'}</span>
+                              </div>
+                              <div className="flex justify-between">
+                                <span className="text-sm text-gray-600">ETA:</span>
+                                <span className="text-sm font-medium text-gray-900">{d.estimatedArrival ? formatDate(d.estimatedArrival) : '—'}</span>
+                              </div>
+                              <div className="flex justify-between">
+                                <span className="text-sm text-gray-600">Last Location:</span>
+                                <span className="text-sm font-medium text-gray-900">{d.lastLocation?.address || '—'}</span>
+                              </div>
+                              {d.deliveryNotes && (
+                                <div className="flex justify-between">
+                                  <span className="text-sm text-gray-600">Notes:</span>
+                                  <span className="text-sm font-medium text-gray-900">{d.deliveryNotes}</span>
+                                </div>
+                              )}
+                            </>
+                          );
+                        })()}
+                      </div>
+                    </div>
+
+                  </div>
 
                   {/* Order Items */}
                   <div>
@@ -711,8 +740,8 @@ const OrderDetailsModal = ({ isOpen, onClose, order, onOrderUpdate }) => {
                       <p className="text-sm text-gray-600 mt-1">Pincode: {orderDetails?.order?.deliveryPincode}</p>
                       {orderDetails?.order?.deliveryExpectedDate && (
                         <p className="text-sm text-gray-600 mt-1">Expected Delivery: {formatDate(orderDetails.order.deliveryExpectedDate)}</p>
-                    )}
-                  </div>
+                      )}
+                    </div>
                   </div>
 
                   {/* PDF documents by status: Quote when accepted (Quote Generated). Sales Order when Order Confirmed. Invoice when Out for Delivery / delivery stage. */}
@@ -766,7 +795,7 @@ const OrderDetailsModal = ({ isOpen, onClose, order, onOrderUpdate }) => {
                       })()}
                     </div>
                   </div>
-                  </div>
+                </div>
               )}
 
               {activeTab === 'payment' && (
@@ -784,7 +813,7 @@ const OrderDetailsModal = ({ isOpen, onClose, order, onOrderUpdate }) => {
                       </div>
                       <div className="flex justify-between">
                         <span className="text-sm text-gray-600">Customer Paid Amount:</span>
-                        <span className="text-sm font-medium text-gray-900">{formatCurrency(orderDetails?.order?.customerPaymentDetails?.paidAmount  || 0)}</span>
+                        <span className="text-sm font-medium text-gray-900">{formatCurrency(orderDetails?.order?.customerPaymentDetails?.paidAmount || 0)}</span>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-sm text-gray-600">Payment Status:</span>
@@ -848,7 +877,9 @@ const OrderDetailsModal = ({ isOpen, onClose, order, onOrderUpdate }) => {
                   )}
                 </div>
               )}
-
+              {activeTab === 'confirmOrder' && (
+                <OrderConfirmation order={order} handleConfirmOrder={handleConfirmOrder} />
+              )}
               {activeTab === 'status' && (
                 <div className="space-y-6">
                   <div className="bg-gray-50 p-6 rounded-lg">
@@ -877,7 +908,7 @@ const OrderDetailsModal = ({ isOpen, onClose, order, onOrderUpdate }) => {
                 <div className="flex gap-3">
                   {orderDetails?.order?.orderStatus === 'payment_done' && (
                     <Button
-                      onClick={handleConfirmOrder}
+                      onClick={() => { setActiveTab('confirmOrder') }}
                       className="bg-green-600 hover:bg-green-700"
                       disabled={actionLoading}
                     >
@@ -914,9 +945,9 @@ const OrderDetailsModal = ({ isOpen, onClose, order, onOrderUpdate }) => {
                 </Button>
               </div>
             </div>
-                  )}
-                </div>
-              </div>
+          )}
+        </div>
+      </div>
 
       {/* Payment Modal */}
       {showPaymentModal && (
@@ -970,8 +1001,8 @@ const OrderDetailsModal = ({ isOpen, onClose, order, onOrderUpdate }) => {
                   onChange={(e) => setPaymentData({ ...paymentData, remarks: e.target.value })}
                   rows={3}
                 />
-                  </div>
-                  </div>
+              </div>
+            </div>
             <div className="flex gap-3 mt-6">
               <Button onClick={handleMarkPaymentDone} className="flex-1 bg-green-600 hover:bg-green-700" disabled={actionLoading}>
                 {actionLoading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <CheckCircle className="w-4 h-4 mr-2" />}
@@ -980,9 +1011,9 @@ const OrderDetailsModal = ({ isOpen, onClose, order, onOrderUpdate }) => {
               <Button onClick={() => setShowPaymentModal(false)} variant="outline" className="flex-1">
                 Cancel
               </Button>
-                  </div>
-                  </div>
-                </div>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Delivery Modal */}
@@ -995,7 +1026,12 @@ const OrderDetailsModal = ({ isOpen, onClose, order, onOrderUpdate }) => {
               {/* 🔹 Existing Delivery Section */}
               <div>
                 <Label>Delivery Status</Label>
-                <Select value={deliveryData.deliveryStatus} onValueChange={(value) => setDeliveryData({ ...deliveryData, deliveryStatus: value })}>
+                <Select
+                  value={deliveryData.deliveryStatus}
+                  onValueChange={(value) =>
+                    setDeliveryData({ ...deliveryData, deliveryStatus: value })
+                  }
+                >
                   <SelectTrigger>
                     <SelectValue placeholder="Select status" />
                   </SelectTrigger>
@@ -1014,22 +1050,25 @@ const OrderDetailsModal = ({ isOpen, onClose, order, onOrderUpdate }) => {
                   <Label>Driver Name</Label>
                   <Input value={deliveryData.driverName} onChange={e => setDeliveryData({ ...deliveryData, driverName: e.target.value })} />
                 </div>
+
                 <div>
                   <Label>Driver Phone</Label>
-                  <Input value={deliveryData.driverPhone} onChange={e => setDeliveryData({ ...deliveryData, driverPhone: e.target.value })} placeholder="10-digit or +E.164" />
+                  <Input value={deliveryData.driverPhone} onChange={e => setDeliveryData({ ...deliveryData, driverPhone: e.target.value })} />
                 </div>
+
                 <div>
                   <Label>Driver License No</Label>
                   <Input value={deliveryData.driverLicenseNo} onChange={e => setDeliveryData({ ...deliveryData, driverLicenseNo: e.target.value })} />
                 </div>
+
                 <div>
                   <Label>Truck Number</Label>
-                  <Input value={deliveryData.truckNumber} onChange={e => setDeliveryData({ ...deliveryData, truckNumber: e.target.value })} placeholder="e.g., TS09AB1234" />
+                  <Input value={deliveryData.truckNumber} onChange={e => setDeliveryData({ ...deliveryData, truckNumber: e.target.value })} />
                 </div>
 
                 <div>
                   <Label>Vehicle Type</Label>
-                  <Input value={deliveryData.vehicleType} onChange={e => setDeliveryData({ ...deliveryData, vehicleType: e.target.value })} placeholder="e.g., 12T Truck" />
+                  <Input value={deliveryData.vehicleType} onChange={e => setDeliveryData({ ...deliveryData, vehicleType: e.target.value })} />
                 </div>
 
                 <div>
@@ -1047,7 +1086,7 @@ const OrderDetailsModal = ({ isOpen, onClose, order, onOrderUpdate }) => {
                   <Input type="datetime-local" value={deliveryData.estimatedArrival} onChange={e => setDeliveryData({ ...deliveryData, estimatedArrival: e.target.value })} />
                 </div>
 
-              <div>
+                <div>
                   <Label>Last Location Latitude</Label>
                   <Input type="number" value={deliveryData.lastLocation.lat} onChange={e => setDeliveryData({ ...deliveryData, lastLocation: { ...deliveryData.lastLocation, lat: e.target.value } })} />
                 </div>
@@ -1060,7 +1099,7 @@ const OrderDetailsModal = ({ isOpen, onClose, order, onOrderUpdate }) => {
                 <div className="md:col-span-2">
                   <Label>Last Location Address</Label>
                   <Input value={deliveryData.lastLocation.address} onChange={e => setDeliveryData({ ...deliveryData, lastLocation: { ...deliveryData.lastLocation, address: e.target.value } })} />
-                  </div>
+                </div>
 
                 <div className="md:col-span-2">
                   <Label>Delivery Notes</Label>
@@ -1123,7 +1162,7 @@ const OrderDetailsModal = ({ isOpen, onClose, order, onOrderUpdate }) => {
                   </Button>
                 </div>
                  
-              )} 
+              )}
               <Separator className="my-4" />
               <div>
                 <Label>Remarks</Label>
@@ -1250,94 +1289,94 @@ const OrderDetailsModal = ({ isOpen, onClose, order, onOrderUpdate }) => {
               <Button onClick={() => setShowCancelModal(false)} variant="outline" className="flex-1">
                 Go Back
               </Button>
+            </div>
+          </div>
         </div>
-      </div>
-    </div>
       )}
 
       {isPriceModalOpen && (
-      <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-[9999]">
-        <div className="bg-white rounded-lg p-6 w-[700px] max-h-[80vh] overflow-y-auto">
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-[9999]">
+          <div className="bg-white rounded-lg p-6 w-[700px] max-h-[80vh] overflow-y-auto">
 
-          <h2 className="text-lg font-semibold mb-4">
-            Enter Item Prices
-          </h2>
+            <h2 className="text-lg font-semibold mb-4">
+              Enter Item Prices
+            </h2>
 
-          {statusData.items.map((item, index) => (
-            <div
-              key={item.itemCode}
-              className="border rounded p-4 mb-4"
-            >
-              <p className="font-medium mb-2">
-                {item.name} (Qty: {item.qty})
-              </p>
+            {statusData.items.map((item, index) => (
+              <div
+                key={item.itemCode}
+                className="border rounded p-4 mb-4"
+              >
+                <p className="font-medium mb-2">
+                  {item.name} (Qty: {item.qty})
+                </p>
 
-              <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-2 gap-4">
 
-                <div>
-                  <Label>Unit Price (₹)</Label>
-                  <Input
-                    type="text"
-                    value={item.unitPrice}
-                    onChange={(e) => {
-                      const value = e.target.value;
-                      if (/^(?:\d+|\d*\.\d+)?$/.test(value)) {
-                        const updatedItems = [...statusData.items];
-                        updatedItems[index].unitPrice = value;
-                        setStatusData({
-                          ...statusData,
-                          items: updatedItems
-                        });
-                      }
-                    }}
-                    inputMode="decimal"
-                  />
+                  <div>
+                    <Label>Unit Price (₹)</Label>
+                    <Input
+                      type="text"
+                      value={item.unitPrice}
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        if (/^(?:\d+|\d*\.\d+)?$/.test(value)) {
+                          const updatedItems = [...statusData.items];
+                          updatedItems[index].unitPrice = value;
+                          setStatusData({
+                            ...statusData,
+                            items: updatedItems
+                          });
+                        }
+                      }}
+                      inputMode="decimal"
+                    />
+                  </div>
+
+                  <div>
+                    <Label>Loading Charges</Label>
+                    <Input
+                      type="text"
+                      value={item.loadingCharges}
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        if (/^(?:\d+|\d*\.\d+)?$/.test(value)) {
+                          const updatedItems = [...statusData.items];
+                          updatedItems[index].loadingCharges = value;
+                          setStatusData({
+                            ...statusData,
+                            items: updatedItems
+                          });
+                        }
+                      }}
+                      inputMode="decimal"
+                    />
+                  </div>
+
                 </div>
-
-                <div>
-                  <Label>Loading Charges</Label>
-                  <Input
-                    type="text"
-                    value={item.loadingCharges}
-                    onChange={(e) => {
-                      const value = e.target.value;
-                      if (/^(?:\d+|\d*\.\d+)?$/.test(value)) {
-                        const updatedItems = [...statusData.items];
-                        updatedItems[index].loadingCharges = value;
-                        setStatusData({
-                          ...statusData,
-                          items: updatedItems
-                        });
-                      }
-                    }}
-                    inputMode="decimal"
-                  />
-                </div>
-
               </div>
+            ))}
+
+            <div className="flex justify-end gap-3 mt-4">
+              <Button
+                variant="outline"
+                onClick={() => setIsPriceModalOpen(false)}
+              >
+                Cancel
+              </Button>
+
+              <Button
+                onClick={() => {
+                  setIsPriceModalOpen(false);
+                }}
+              >
+                Save Prices
+              </Button>
             </div>
-          ))}
 
-          <div className="flex justify-end gap-3 mt-4">
-            <Button
-              variant="outline"
-              onClick={() => setIsPriceModalOpen(false)}
-            >
-              Cancel
-            </Button>
-
-            <Button
-              onClick={() => {
-                setIsPriceModalOpen(false);
-              }}
-            >
-              Save Prices
-            </Button>
           </div>
-
         </div>
-      </div>
-    )}
+      )}
 
       {isShippingModalOpen && (
   <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 overflow-y-auto  z-[9999]">

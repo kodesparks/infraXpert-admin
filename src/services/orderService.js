@@ -280,9 +280,9 @@ class OrderService {
   }
 
   // Confirm order (legacy)
-  async confirmOrder(leadId) {
+  async confirmOrder(leadId, data) {
     try {
-      const response = await apiClient.post(`/api/order/admin/orders/${leadId}/confirm`)
+      const response = await apiClient.post(`/api/order/admin/orders/${leadId}/confirm`, data)
       return response.data
     } catch (error) {
       throw error

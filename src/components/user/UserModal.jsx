@@ -6,6 +6,7 @@ import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
 import userService from '@/services/userService'
+import { states } from '../Constants'
 
 const UserModal = ({ 
   isOpen, 
@@ -30,6 +31,8 @@ const UserModal = ({
     terminationDate: '',
     employeeType: 'full_time',
     companyName: '',
+    gstNumber:'',
+    state:'',
     // Warehouse fields for vendors
     warehouse: {
       warehouseName: '',
@@ -104,6 +107,8 @@ const UserModal = ({
         terminationDate: user.terminationDate ? user.terminationDate.split('T')[0] : '',
         employeeType: user.employeeType || 'full_time',
         companyName: user.companyName || '',
+        gstNumber: user.gstNumber || '',
+        state: user.state || '',
         // Load warehouse data if user has warehouse (for vendors)
         warehouse: user.warehouse ? {
           warehouseName: user.warehouse.warehouseName || '',
@@ -294,17 +299,17 @@ const UserModal = ({
           location: {
             ...submitData.warehouse.location,
             coordinates: {
-              latitude: parseFloat(submitData.warehouse.location.coordinates.latitude) || 0,
-              longitude: parseFloat(submitData.warehouse.location.coordinates.longitude) || 0
+              latitude: parseFloat(submitData.warehouse?.location?.coordinates?.latitude) || 0,
+              longitude: parseFloat(submitData.warehouse?.location?.coordinates?.longitude) || 0
             }
           },
           deliveryConfig: {
-            baseDeliveryCharge: parseFloat(submitData.warehouse.deliveryConfig.baseDeliveryCharge) || 0,
-            perKmCharge: parseFloat(submitData.warehouse.deliveryConfig.perKmCharge) || 0,
-            minimumOrder: parseFloat(submitData.warehouse.deliveryConfig.minimumOrder) || 0,
-            freeDeliveryThreshold: parseFloat(submitData.warehouse.deliveryConfig.freeDeliveryThreshold) || 0,
-            freeDeliveryRadius: parseFloat(submitData.warehouse.deliveryConfig.freeDeliveryRadius) || 0,
-            maxDeliveryRadius: parseFloat(submitData.warehouse.deliveryConfig.maxDeliveryRadius) || 500
+            baseDeliveryCharge: parseFloat(submitData.warehouse?.deliveryConfig?.baseDeliveryCharge) || 0,
+            perKmCharge: parseFloat(submitData.warehouse?.deliveryConfig?.perKmCharge) || 0,
+            minimumOrder: parseFloat(submitData.warehouse?.deliveryConfig?.minimumOrder) || 0,
+            freeDeliveryThreshold: parseFloat(submitData.warehouse?.deliveryConfig?.freeDeliveryThreshold) || 0,
+            freeDeliveryRadius: parseFloat(submitData.warehouse?.deliveryConfig?.freeDeliveryRadius) || 0,
+            maxDeliveryRadius: parseFloat(submitData.warehouse?.deliveryConfig?.maxDeliveryRadius) || 500
           }
         }
       }
@@ -470,7 +475,28 @@ const UserModal = ({
                   rows={3}
                 />
               </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  State *
+                </label>
+                <select
+                  name="state"
+                  value={formData.state}
+                  required={isFieldRequired('state')}
+                  onChange={(e) => handleInputChange('state', e.target.value)}
+                  className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 'border-gray-300'
+                    `}
+                >
+                  <option value="">Select State</option>
 
+                  {states.map((state) => (
+                    <option key={state} value={state}>
+                      {state}
+                    </option>
+                  ))}
+                </select>
+                
+                    </div>
               {/* Pincode */}
               <div className="space-y-2">
                 <Label htmlFor="pincode">
@@ -484,6 +510,19 @@ const UserModal = ({
                   placeholder="Enter pincode"
                 />
               </div>
+              <div className="space-y-2">
+                  <Label htmlFor="gstNumber" className="flex items-center gap-2">
+                    <FileText className="h-4 w-4" />
+                    GST Number {isFieldRequired('gstNumber') && <span className="text-red-500">*</span>}
+                  </Label>
+                  <Input
+                    id="gstNumber"
+                    value={formData.gstNumber}
+                    onChange={(e) => handleInputChange('gstNumber', e.target.value)}
+                    required={isFieldRequired('gstNumber')}
+                    placeholder="Enter GST number"
+                  />
+                </div>
             </div>
 
             {/* Employee Information */}
@@ -604,6 +643,7 @@ const UserModal = ({
                     placeholder="Enter company name"
                   />
                 </div>
+                
               </div>
             )}
 
@@ -619,13 +659,14 @@ const UserModal = ({
                   {/* Warehouse Name */}
                   <div className="space-y-2">
                     <Label htmlFor="warehouseName">
-                      Warehouse Name <span className="text-red-500">*</span>
+                      Warehouse Name 
+                      {/* <span className="text-red-500">*</span> */}
                     </Label>
                     <Input
                       id="warehouseName"
                       value={formData.warehouse.warehouseName}
                       onChange={(e) => handleWarehouseInputChange('warehouseName', e.target.value)}
-                      required
+                      // required
                       placeholder="Enter warehouse name"
                     />
                   </div>
@@ -633,13 +674,14 @@ const UserModal = ({
                   {/* Warehouse Address */}
                   <div className="space-y-2">
                     <Label htmlFor="warehouseAddress">
-                      Warehouse Address <span className="text-red-500">*</span>
+                      Warehouse Address 
+                      {/* <span className="text-red-500">*</span> */}
                     </Label>
                     <Input
                       id="warehouseAddress"
                       value={formData.warehouse.location.address}
                       onChange={(e) => handleLocationInputChange('address', e.target.value)}
-                      required
+                      // required
                       placeholder="Enter warehouse address"
                     />
                   </div>
@@ -647,13 +689,14 @@ const UserModal = ({
                   {/* City */}
                   <div className="space-y-2">
                     <Label htmlFor="warehouseCity">
-                      City <span className="text-red-500">*</span>
+                      City
+                       {/* <span className="text-red-500">*</span> */}
                     </Label>
                     <Input
                       id="warehouseCity"
                       value={formData.warehouse.location.city}
                       onChange={(e) => handleLocationInputChange('city', e.target.value)}
-                      required
+                      // required
                       placeholder="Enter city"
                     />
                   </div>
@@ -661,13 +704,14 @@ const UserModal = ({
                   {/* State */}
                   <div className="space-y-2">
                     <Label htmlFor="warehouseState">
-                      State <span className="text-red-500">*</span>
+                      State 
+                      {/* <span className="text-red-500">*</span> */}
                     </Label>
                     <Input
                       id="warehouseState"
                       value={formData.warehouse.location.state}
                       onChange={(e) => handleLocationInputChange('state', e.target.value)}
-                      required
+                      // required
                       placeholder="Enter state"
                     />
                   </div>
@@ -675,13 +719,14 @@ const UserModal = ({
                   {/* Pincode */}
                   <div className="space-y-2">
                     <Label htmlFor="warehousePincode">
-                      Pincode <span className="text-red-500">*</span>
+                      Pincode 
+                      {/* <span className="text-red-500">*</span> */}
                     </Label>
                     <Input
                       id="warehousePincode"
                       value={formData.warehouse.location.pincode}
                       onChange={(e) => handleLocationInputChange('pincode', e.target.value)}
-                      required
+                      // required
                       placeholder="Enter 6-digit pincode"
                       maxLength="6"
                     />
@@ -690,7 +735,8 @@ const UserModal = ({
                   {/* Latitude */}
                   <div className="space-y-2">
                     <Label htmlFor="warehouseLatitude">
-                      Latitude <span className="text-red-500">*</span>
+                      Latitude 
+                      {/* <span className="text-red-500">*</span> */}
                     </Label>
                     <Input
                       id="warehouseLatitude"
@@ -698,7 +744,7 @@ const UserModal = ({
                       step="any"
                       value={formData.warehouse.location.coordinates.latitude}
                       onChange={(e) => handleCoordinatesInputChange('latitude', e.target.value)}
-                      required
+                      // required
                       placeholder="Enter latitude"
                     />
                   </div>
@@ -706,7 +752,8 @@ const UserModal = ({
                   {/* Longitude */}
                   <div className="space-y-2">
                     <Label htmlFor="warehouseLongitude">
-                      Longitude <span className="text-red-500">*</span>
+                      Longitude 
+                      {/* <span className="text-red-500">*</span> */}
                     </Label>
                     <Input
                       id="warehouseLongitude"
@@ -714,7 +761,7 @@ const UserModal = ({
                       step="any"
                       value={formData.warehouse.location.coordinates.longitude}
                       onChange={(e) => handleCoordinatesInputChange('longitude', e.target.value)}
-                      required
+                      // required
                       placeholder="Enter longitude"
                     />
                   </div>
@@ -748,7 +795,8 @@ const UserModal = ({
                     {/* Base Delivery Charge */}
                     <div className="space-y-2">
                       <Label htmlFor="baseDeliveryCharge">
-                        Base Delivery Charge (₹) <span className="text-red-500">*</span>
+                        Base Delivery Charge (₹) 
+                        {/* <span className="text-red-500">*</span> */}
                       </Label>
                       <Input
                         id="baseDeliveryCharge"
@@ -756,7 +804,7 @@ const UserModal = ({
                         min="0"
                         value={formData.warehouse.deliveryConfig.baseDeliveryCharge}
                         onChange={(e) => handleDeliveryConfigInputChange('baseDeliveryCharge', e.target.value)}
-                        required
+                        // required
                         placeholder="0"
                       />
                     </div>
@@ -764,7 +812,8 @@ const UserModal = ({
                     {/* Per KM Charge */}
                     <div className="space-y-2">
                       <Label htmlFor="perKmCharge">
-                        Per KM Charge (₹) <span className="text-red-500">*</span>
+                        Per KM Charge (₹) 
+                        {/* <span className="text-red-500">*</span> */}
                       </Label>
                       <Input
                         id="perKmCharge"
@@ -772,7 +821,7 @@ const UserModal = ({
                         min="0"
                         value={formData.warehouse.deliveryConfig.perKmCharge}
                         onChange={(e) => handleDeliveryConfigInputChange('perKmCharge', e.target.value)}
-                        required
+                        // required
                         placeholder="0"
                       />
                     </div>
@@ -780,7 +829,8 @@ const UserModal = ({
                     {/* Minimum Order */}
                     <div className="space-y-2">
                       <Label htmlFor="minimumOrder">
-                        Minimum Order (₹) <span className="text-red-500">*</span>
+                        Minimum Order (₹) 
+                        {/* <span className="text-red-500">*</span> */}
                       </Label>
                       <Input
                         id="minimumOrder"
@@ -788,7 +838,7 @@ const UserModal = ({
                         min="0"
                         value={formData.warehouse.deliveryConfig.minimumOrder}
                         onChange={(e) => handleDeliveryConfigInputChange('minimumOrder', e.target.value)}
-                        required
+                        // required
                         placeholder="0"
                       />
                     </div>

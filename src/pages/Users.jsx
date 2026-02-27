@@ -101,6 +101,13 @@ const Users = () => {
     }))
   }
 
+  const handlePageChange = (field, value) => {
+    setFilters(prev => ({
+      ...prev,
+      [field]: value,
+      // page: 1 // Reset to first page when filters change
+    }))
+  }
   const handleCreateUser = () => {
     setEditingUser(null)
     setShowModal(true)
@@ -118,6 +125,7 @@ const Users = () => {
   }
 
   const handleSubmitUser = async (userData) => {
+    console.log(userData);
     try {
       if (editingUser) {
         await userService.updateUser(editingUser._id, userData)
@@ -621,7 +629,7 @@ const Users = () => {
           <div className="flex items-center justify-center gap-2">
             <Button
               variant="outline"
-              onClick={() => handleFilterChange('page', filters.page - 1)}
+              onClick={() => handlePageChange('page', filters.page - 1)}
               disabled={!pagination.hasPrev || loading}
             >
               Previous
@@ -633,7 +641,7 @@ const Users = () => {
             
             <Button
               variant="outline"
-              onClick={() => handleFilterChange('page', filters.page + 1)}
+              onClick={() => handlePageChange('page', filters.page + 1)}
               disabled={!pagination.hasNext || loading}
             >
               Next
