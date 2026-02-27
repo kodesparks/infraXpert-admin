@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
 import orderService from "@/services/orderService";
+import { states } from "./Constants";
 
 const OrderDetailsModal = ({ isOpen, onClose, order, onOrderUpdate }) => {
   const [orderDetails, setOrderDetails] = useState(null);
