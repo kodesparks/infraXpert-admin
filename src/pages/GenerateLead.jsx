@@ -220,7 +220,7 @@ const GenerateLead = () => {
                   placeholder="₹25,000"
                   value={formData.estimatedPrice}
                   onChange={(e) => handleInputChange('estimatedPrice', e.target.value)}
-                  required
+                  // required
                 />
               </div>
 

@@ -190,9 +190,9 @@ const OrderDetailsModal = ({ isOpen, onClose, order, onOrderUpdate }) => {
         ...data,
         remarks: 'Order confirmed by admin after payment verification'
       });
-      // alert('Order confirmed successfully!');
-      // await fetchOrderDetails();
-      // if (onOrderUpdate) onOrderUpdate();
+      alert('Order confirmed successfully!');
+      await fetchOrderDetails();
+      if (onOrderUpdate) onOrderUpdate();
     } catch (err) {
       console.error('Error confirming order:', err);
       alert(err.response?.data?.message || 'Failed to confirm order');
@@ -272,6 +272,7 @@ const OrderDetailsModal = ({ isOpen, onClose, order, onOrderUpdate }) => {
 
         ...(statusData.orderStatus === 'vendor_accepted' && {          
           items: statusData.items.map(item => ({
+            qty: item.qty,
             itemCode: item.itemCode,
             unitPrice: Number(item.unitPrice),
             loadingCharges: Number(item.loadingCharges || 0)
@@ -754,13 +755,15 @@ const OrderDetailsModal = ({ isOpen, onClose, order, onOrderUpdate }) => {
                         const isDeliveryStage = deliveryStage.includes(status);
                         const showQuote = ['vendor_accepted', 'order_confirmed', 'payment_done', 'truck_loading'].includes(status);
                         const showSalesOrder = ['order_confirmed', 'payment_done', 'truck_loading'].includes(status);
+                        const showPurchaseOrder = ['order_confirmed', 'truck_loading'].includes(status);
                         const showInvoice = isDeliveryStage;
                         const showEwayBill = isDeliveryStage;
                         const docConfig = [
                           showQuote && { type: 'quote', label: 'Quote' },
                           showSalesOrder && { type: 'so', label: 'Sales Order' },
                           showInvoice && { type: 'invoice', label: 'Invoice' },
-                          showEwayBill && { type: 'eway', label: 'E-way Bill' }
+                          showEwayBill && { type: 'eway', label: 'E-way Bill' },
+                          showPurchaseOrder && { type: 'po', label: 'Purchase Order' }
                         ].filter(Boolean);
                         return docConfig.map(({ type, label }) => (
                           <Button
@@ -878,7 +881,7 @@ const OrderDetailsModal = ({ isOpen, onClose, order, onOrderUpdate }) => {
                 </div>
               )}
               {activeTab === 'confirmOrder' && (
-                <OrderConfirmation order={order} handleConfirmOrder={handleConfirmOrder} />
+                <OrderConfirmation order={orderDetails?.order} handleConfirmOrder={handleConfirmOrder} />
               )}
               {activeTab === 'status' && (
                 <div className="space-y-6">
@@ -1308,11 +1311,32 @@ const OrderDetailsModal = ({ isOpen, onClose, order, onOrderUpdate }) => {
                 className="border rounded p-4 mb-4"
               >
                 <p className="font-medium mb-2">
-                  {item.name} (Qty: {item.qty})
+                  {item.name}
                 </p>
 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-3 gap-4">
 
+                  {/* ✅ Quantity */}
+                  <div>
+                    <Label>Quantity</Label>
+                    <Input
+                      type="number"
+                      value={item.qty}
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        if (/^\d*$/.test(value)) {
+                          const updatedItems = [...statusData.items];
+                          updatedItems[index].qty = value;
+                          setStatusData({
+                            ...statusData,
+                            items: updatedItems
+                          });
+                        }
+                      }}
+                    />
+                  </div>
+
+                  {/* ✅ Unit Price */}
                   <div>
                     <Label>Unit Price (₹)</Label>
                     <Input
@@ -1333,6 +1357,7 @@ const OrderDetailsModal = ({ isOpen, onClose, order, onOrderUpdate }) => {
                     />
                   </div>
 
+                  {/* ✅ Loading Charges */}
                   <div>
                     <Label>Loading Charges</Label>
                     <Input
@@ -1379,118 +1404,117 @@ const OrderDetailsModal = ({ isOpen, onClose, order, onOrderUpdate }) => {
       )}
 
       {isShippingModalOpen && (
-  <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 overflow-y-auto  z-[9999]">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 overflow-y-auto  z-[9999]">
 
-    <div className="bg-white rounded-lg shadow-xl w-full max-w-lg p-6 max-h-[90vh] overflow-y-auto">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-lg p-6 max-h-[90vh] overflow-y-auto">
 
-      <h3 className="text-lg font-semibold mb-4">Shipping Details</h3>
+            <h3 className="text-lg font-semibold mb-4">Shipping Details</h3>
 
-      <div className="space-y-4">
+            <div className="space-y-4">
 
-        {/* 🔹 Receiver Info */}
-        <div className="border p-4 rounded-md">
-          {/* <h4 className="font-medium mb-3">Receiver Information</h4> */}
+              {/* 🔹 Receiver Info */}
+              <div className="border p-4 rounded-md">
+                {/* <h4 className="font-medium mb-3">Receiver Information</h4> */}
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
 
-            <div>
-              <Label>Full Name </Label>
-              <Input
-                value={statusData.shippingFullName || ""}
-                onChange={e =>
-                  setStatusData({ ...statusData, shippingFullName: e.target.value })
-                }
-              />
+                  <div>
+                    <Label>Full Name </Label>
+                    <Input
+                      value={statusData.shippingFullName || ""}
+                      onChange={e =>
+                        setStatusData({ ...statusData, shippingFullName: e.target.value })
+                      }
+                    />
+                  </div>
+
+                  <div>
+                    <Label>Phone </Label>
+                    <Input
+                      value={statusData.shippingPhoneNumber || ""}
+                      onChange={e =>
+                        setStatusData({ ...statusData, shippingPhoneNumber: e.target.value })
+                      }
+                    />
+                  </div>
+
+                  <div>
+                    <Label>Email</Label>
+                    <Input
+                      type="email"
+                      value={statusData.shippingMail || ""}
+                      onChange={e =>
+                        setStatusData({ ...statusData, shippingMail: e.target.value })
+                      }
+                    />
+                  </div>
+
+                  <div>
+                    <Label>State</Label>
+                    <select
+                      value={statusData.shippingState || ""}
+                      onChange={e =>
+                        setStatusData({ ...statusData, shippingState: e.target.value })
+                      }
+                      className="w-full border rounded-md p-2"
+                    >
+                      <option value="">Select State</option>
+
+                      {states.map((state) => (
+                        <option key={state} value={state}>
+                          {state}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <Label>Pincode </Label>
+                    <Input
+                      value={statusData.shippingPincode || ""}
+                      onChange={e =>
+                        setStatusData({ ...statusData, shippingPincode: e.target.value })
+                      }
+                      maxLength={6}
+                    />
+                  </div>
+
+                  <div className="md:col-span-2">
+                    <Label>Delivery Address </Label>
+                    <Textarea
+                      rows={2}
+                      value={statusData.shippingDeliveryAddress || ""}
+                      onChange={e =>
+                        setStatusData({ ...statusData, shippingDeliveryAddress: e.target.value })
+                      }
+                    />
+                  </div>
+
+                </div>
+              </div>
+
             </div>
 
-            <div>
-              <Label>Phone </Label>
-              <Input
-                value={statusData.shippingPhoneNumber || ""}
-                onChange={e =>
-                  setStatusData({ ...statusData, shippingPhoneNumber: e.target.value })
-                }
-              />
-            </div>
+            {/* Buttons */}
+            <div className="flex gap-3 mt-6">
+              <Button onClick={() => {
+                setIsShippingModalOpen(false);
+              }} className="flex-1 bg-green-600 text-white">
+                Save
+              </Button>
 
-            <div>
-              <Label>Email</Label>
-              <Input
-                type="email"
-                value={statusData.shippingMail || ""}
-                onChange={e =>
-                  setStatusData({ ...statusData, shippingMail: e.target.value })
-                }
-              />
-            </div>
-
-            <div>
-              <Label>State</Label>
-              <select
-                value={statusData.shippingState || ""}
-                onChange={e =>
-                  setStatusData({ ...statusData, shippingState: e.target.value })
-                }
-                className="w-full border rounded-md p-2"
+              <Button
+                onClick={() => setIsShippingModalOpen(false)}
+                variant="outline"
+                className="flex-1"
               >
-                <option value="">Select State</option>
-                
-                                        {states.map((state) => (
-                                          <option key={state} value={state}>
-                                            {state}
-                                          </option>
-                                        ))}
-              </select>
-            </div>
-
-            <div>
-              <Label>Pincode </Label>
-              <Input
-                value={statusData.shippingPincode || ""}
-                onChange={e =>
-                  setStatusData({ ...statusData, shippingPincode: e.target.value })
-                }
-                maxLength={6}
-              />
-            </div>
-
-            <div className="md:col-span-2">
-              <Label>Delivery Address </Label>
-              <Textarea
-                rows={2}
-                value={statusData.shippingDeliveryAddress || ""}
-                onChange={e =>
-                  setStatusData({ ...statusData, shippingDeliveryAddress: e.target.value })
-                }
-              />
+                Cancel
+              </Button>
             </div>
 
           </div>
         </div>
-
-      </div>
-
-      {/* Buttons */}
-      <div className="flex gap-3 mt-6">
-        <Button onClick={() => {
-            setIsShippingModalOpen(false);        
-            console.log('details',statusData);
-          }} className="flex-1 bg-green-600 text-white">
-          Save
-        </Button>
-
-        <Button
-          onClick={() => setIsShippingModalOpen(false)}
-          variant="outline"
-          className="flex-1"
-        >
-          Cancel
-        </Button>
-      </div>
-
-    </div>
-  </div>
-)}
+      )}
     </>
   );
 };

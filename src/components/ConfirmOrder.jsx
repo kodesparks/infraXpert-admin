@@ -285,46 +285,57 @@ const finalData = {
         </thead>
 
         <tbody>
-          {vendorData.items.map((item, index) => {
-            const total =
-              (parseFloat(item.vendorUnitPrice || 0) +
-                parseFloat(item.vendorLoadingCharges || 0)) *
+  {vendorData.items.map((item, index) => {
+    const total =
+      (parseFloat(item.vendorUnitPrice || 0) +
+        parseFloat(item.vendorLoadingCharges || 0)) *
               (item.qty || 0);
 
-            return (
-              <tr key={item.itemCode} className="border-t">
-                <td className="px-3 py-2">{item.name}</td>
+    return (
+      <tr key={item.itemCode} className="border-t">
+        <td className="px-3 py-2">{item.name}</td>
                 <td className="px-3 py-2 text-right">{item.qty}</td>
 
-                <td className="px-3 py-2">
-                  <Input
-                    value={item.vendorUnitPrice}
-                    onChange={(e) => {
-                      const updated = [...vendorData.items];
-                      updated[index].vendorUnitPrice = e.target.value;
-                      setVendorData({ ...vendorData, items: updated });
-                    }}
-                  />
-                </td>
+        {/* ✅ Unit Price */}
+        <td className="px-3 py-2">
+          <Input
+            value={item.vendorUnitPrice}
+            onChange={(e) => {
+              const value = e.target.value;
+              if (/^(?:\d+|\d*\.\d+)?$/.test(value)) {
+                const updated = [...vendorData.items];
+                updated[index].vendorUnitPrice = value;
+                setVendorData({ ...vendorData, items: updated });
+              }
+            }}
+            className="text-right"
+          />
+        </td>
 
-                <td className="px-3 py-2">
-                  <Input
-                    value={item.vendorLoadingCharges}
-                    onChange={(e) => {
-                      const updated = [...vendorData.items];
-                      updated[index].vendorLoadingCharges = e.target.value;
-                      setVendorData({ ...vendorData, items: updated });
-                    }}
-                  />
-                </td>
+        {/* ✅ Loading Charges */}
+        <td className="px-3 py-2">
+          <Input
+            value={item.vendorLoadingCharges}
+            onChange={(e) => {
+              const value = e.target.value;
+              if (/^(?:\d+|\d*\.\d+)?$/.test(value)) {
+                const updated = [...vendorData.items];
+                updated[index].vendorLoadingCharges = value;
+                setVendorData({ ...vendorData, items: updated });
+              }
+            }}
+            className="text-right"
+          />
+        </td>
 
-                <td className="px-3 py-2 text-right font-medium">
-                  ₹ {total.toFixed(2)}
-                </td>
-              </tr>
-            );
-          })}
-        </tbody>
+        {/* ✅ Total */}
+        <td className="px-3 py-2 text-right font-medium">
+          ₹ {total.toFixed(2)}
+        </td>
+      </tr>
+    );
+  })}
+</tbody>
       </table>
     </div>
   </div>
