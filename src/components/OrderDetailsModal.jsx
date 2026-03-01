@@ -753,17 +753,19 @@ const OrderDetailsModal = ({ isOpen, onClose, order, onOrderUpdate }) => {
                         const status = orderDetails?.order?.orderStatus || '';
                         const deliveryStage = ['in_transit', 'out_for_delivery', 'delivered'];
                         const isDeliveryStage = deliveryStage.includes(status);
-                        const showQuote = ['vendor_accepted', 'order_confirmed', 'payment_done', 'truck_loading'].includes(status);
-                        const showSalesOrder = ['order_confirmed', 'payment_done', 'truck_loading'].includes(status);
-                        const showPurchaseOrder = ['order_confirmed', 'truck_loading'].includes(status);
+                        const showQuote = ['vendor_accepted', 'order_confirmed', 'payment_done', 'truck_loading','in_transit', 'out_for_delivery', 'delivered'].includes(status);
+                        const showSalesOrder = ['order_confirmed', 'payment_done', 'truck_loading', 'in_transit', 'out_for_delivery', 'delivered'].includes(status);
+                        const showPurchaseOrder = ['order_confirmed', 'truck_loading', 'in_transit', 'out_for_delivery', 'delivered'].includes(status);
                         const showInvoice = isDeliveryStage;
                         const showEwayBill = isDeliveryStage;
+                        const showPaymentRecipt = isDeliveryStage;
                         const docConfig = [
                           showQuote && { type: 'quote', label: 'Quote' },
                           showSalesOrder && { type: 'so', label: 'Sales Order' },
                           showInvoice && { type: 'invoice', label: 'Invoice' },
                           showEwayBill && { type: 'eway', label: 'E-way Bill' },
-                          showPurchaseOrder && { type: 'po', label: 'Purchase Order' }
+                          showPurchaseOrder && { type: 'po', label: 'Purchase Order' },
+                          showPaymentRecipt && { type: 'payment', label: 'Payment Receipt' }
                         ].filter(Boolean);
                         return docConfig.map(({ type, label }) => (
                           <Button
