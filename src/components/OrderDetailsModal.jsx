@@ -310,11 +310,11 @@ const OrderDetailsModal = ({ isOpen, onClose, order, onOrderUpdate }) => {
     try {
       setActionLoading(true);
 
-      if (!deliveryData.receiverAddress?.trim()) {
-        alert('Receiver address is required');
-        setActionLoading(false);
-        return;
-      }
+      // if (!deliveryData.receiverAddress?.trim()) {
+      //   alert('Receiver address is required');
+      //   setActionLoading(false);
+      //   return;
+      // }
 
       // 🔹 Driver Phone Validation
       if (deliveryData.driverPhone) {
