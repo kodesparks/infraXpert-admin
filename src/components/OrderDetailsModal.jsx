@@ -758,7 +758,7 @@ const OrderDetailsModal = ({ isOpen, onClose, order, onOrderUpdate }) => {
                         const showPurchaseOrder = ['order_confirmed', 'truck_loading', 'in_transit', 'out_for_delivery', 'delivered'].includes(status);
                         const showInvoice = isDeliveryStage;
                         const showEwayBill = isDeliveryStage;
-                        const showPaymentRecipt = isDeliveryStage;
+                        const showPaymentRecipt = ['payment_done', 'truck_loading', 'in_transit', 'out_for_delivery', 'delivered'].includes(status);
                         const docConfig = [
                           showQuote && { type: 'quote', label: 'Quote' },
                           showSalesOrder && { type: 'so', label: 'Sales Order' },
