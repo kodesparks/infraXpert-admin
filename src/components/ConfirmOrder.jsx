@@ -287,9 +287,9 @@ const finalData = {
         <tbody>
   {vendorData.items.map((item, index) => {
     const total =
-      (parseFloat(item.vendorUnitPrice || 0) +
-        parseFloat(item.vendorLoadingCharges || 0)) *
-              (item.qty || 0);
+      (parseFloat(item.vendorUnitPrice || 0) *
+              (item.qty || 0)) +
+        parseFloat(item.vendorLoadingCharges || 0)
 
     return (
       <tr key={item.itemCode} className="border-t">
