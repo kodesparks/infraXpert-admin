@@ -182,6 +182,7 @@ const OrderDetailsModal = ({ isOpen, onClose, order, onOrderUpdate }) => {
   };
 
   const handleConfirmOrder = async (data) => {
+    if (actionLoading) return;
     if (!window.confirm('Are you sure you want to confirm this order?')) return;
 
     try {
@@ -883,7 +884,7 @@ const OrderDetailsModal = ({ isOpen, onClose, order, onOrderUpdate }) => {
                 </div>
               )}
               {activeTab === 'confirmOrder' && (
-                <OrderConfirmation order={orderDetails?.order} handleConfirmOrder={handleConfirmOrder} isLoading={actionLoading}/>
+                <OrderConfirmation order={orderDetails?.order} handleConfirmOrder={handleConfirmOrder} isLoading={actionLoading} />
               )}
               {activeTab === 'status' && (
                 <div className="space-y-6">

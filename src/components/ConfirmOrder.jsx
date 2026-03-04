@@ -68,7 +68,7 @@ const OrderConfirmation = ({ order, handleConfirmOrder, isLoading }) => {
         }));
     };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
 
     // 🔹 Validate Vendor Details
@@ -112,7 +112,7 @@ const OrderConfirmation = ({ order, handleConfirmOrder, isLoading }) => {
     };
 
     console.log("Submitted Data:", finalData);
-    handleConfirmOrder && handleConfirmOrder(finalData);
+    handleConfirmOrder && await handleConfirmOrder(finalData);
     // alert("Order Submitted Successfully");
   };
 
@@ -359,6 +359,7 @@ const OrderConfirmation = ({ order, handleConfirmOrder, isLoading }) => {
   </div>
 
   {/* 🔹 SUBMIT BUTTON */}
+  {order?.orderStatus === 'payment_done' &&
   <div className="sticky bottom-0 bg-white border-t p-4">
     <button
       type="submit"
@@ -366,9 +367,10 @@ const OrderConfirmation = ({ order, handleConfirmOrder, isLoading }) => {
       disabled={isLoading}
       className="w-full bg-blue-600 text-white py-3 rounded-lg text-lg font-medium hover:bg-blue-700 transition"
     >
-      Confirm Order
+     {isLoading ? "Confirming Order..." : "Confirm Order"}
     </button>
   </div>
+  }
 
 </div>
         </>
