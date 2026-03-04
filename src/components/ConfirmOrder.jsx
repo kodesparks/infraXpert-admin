@@ -5,7 +5,7 @@ import { Label } from "@/components/ui/label";
 import { formatCurrency } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 
-const OrderConfirmation = ({ order, handleConfirmOrder }) => {
+const OrderConfirmation = ({ order, handleConfirmOrder, isLoading }) => {
     const [vendorData, setVendorData] = useState({
         vendorId: "",
         vendorEmail: "",
@@ -68,53 +68,53 @@ const OrderConfirmation = ({ order, handleConfirmOrder }) => {
         }));
     };
 
-    const handleSubmit = (e) => {
-        e.preventDefault();
+  const handleSubmit = (e) => {
+    e.preventDefault();
 
-        // 🔹 Validate Vendor Details
-if (!vendorData.vendorId) {
-  alert("Please select a vendor");
-  return;
-}
+    // 🔹 Validate Vendor Details
+    if (!vendorData.vendorId) {
+      alert("Please select a vendor");
+      return;
+    }
 
-if (!vendorData.vendorEmail || (vendorData.vendorEmail === "other" && !vendorData.customEmail)) {
-  alert("Please provide vendor email");
-  return;
-}
+    if (!vendorData.vendorEmail || (vendorData.vendorEmail === "other" && !vendorData.customEmail)) {
+      alert("Please provide vendor email");
+      return;
+    }
 
-if (!vendorData.vendorPhone || (vendorData.vendorPhone === "other" && !vendorData.customPhone)) {
-  alert("Please provide vendor phone");
-  return;
-}
+    if (!vendorData.vendorPhone || (vendorData.vendorPhone === "other" && !vendorData.customPhone)) {
+      alert("Please provide vendor phone");
+      return;
+    }
 
-// 🔹 Validate Item Prices
-const invalidItem = vendorData.items.find(item => 
-  !item.vendorUnitPrice || item.vendorUnitPrice === "" ||
-  !item.vendorLoadingCharges || item.vendorLoadingCharges === ""
-);
+    // 🔹 Validate Item Prices
+    const invalidItem = vendorData.items.find(item =>
+      !item.vendorUnitPrice || item.vendorUnitPrice === "" ||
+      !item.vendorLoadingCharges || item.vendorLoadingCharges === ""
+    );
 
-if (invalidItem) {
-  alert(`Please enter unit price and loading charges for all items`);
-  return;
-}
+    if (invalidItem) {
+      alert(`Please enter unit price and loading charges for all items`);
+      return;
+    }
 
-// 🔹 Final Data
-const finalData = {
-  ...vendorData,
-  vendorEmail:
-    vendorData.vendorEmail === "other"
-      ? vendorData.customEmail
-      : vendorData.vendorEmail,
-  vendorPhone:
-    vendorData.vendorPhone === "other"
-      ? vendorData.customPhone
-      : vendorData.vendorPhone,
-};
-
-        console.log("Submitted Data:", finalData);
-        handleConfirmOrder && handleConfirmOrder(finalData);
-        // alert("Order Submitted Successfully");
+    // 🔹 Final Data
+    const finalData = {
+      ...vendorData,
+      vendorEmail:
+        vendorData.vendorEmail === "other"
+          ? vendorData.customEmail
+          : vendorData.vendorEmail,
+      vendorPhone:
+        vendorData.vendorPhone === "other"
+          ? vendorData.customPhone
+          : vendorData.vendorPhone,
     };
+
+    console.log("Submitted Data:", finalData);
+    handleConfirmOrder && handleConfirmOrder(finalData);
+    // alert("Order Submitted Successfully");
+  };
 
     return (
         <>
@@ -363,6 +363,7 @@ const finalData = {
     <button
       type="submit"
       onClick={handleSubmit}
+      disabled={isLoading}
       className="w-full bg-blue-600 text-white py-3 rounded-lg text-lg font-medium hover:bg-blue-700 transition"
     >
       Confirm Order

@@ -477,7 +477,7 @@ const UserModal = ({
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  State *
+                  State <span className="text-red-500">*</span>
                 </label>
                 <select
                   name="state"

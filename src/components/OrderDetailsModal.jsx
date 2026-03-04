@@ -154,7 +154,7 @@ const OrderDetailsModal = ({ isOpen, onClose, order, onOrderUpdate }) => {
       if (response.order && !paymentData.paidAmount) {
         setPaymentData(prev => ({
           ...prev,
-          paidAmount: response.order.totalAmount
+          paidAmount: ''
         }));
       }
     } catch (err) {
@@ -883,7 +883,7 @@ const OrderDetailsModal = ({ isOpen, onClose, order, onOrderUpdate }) => {
                 </div>
               )}
               {activeTab === 'confirmOrder' && (
-                <OrderConfirmation order={orderDetails?.order} handleConfirmOrder={handleConfirmOrder} />
+                <OrderConfirmation order={orderDetails?.order} handleConfirmOrder={handleConfirmOrder} isLoading={actionLoading}/>
               )}
               {activeTab === 'status' && (
                 <div className="space-y-6">
