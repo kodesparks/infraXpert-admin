@@ -758,14 +758,14 @@ const OrderDetailsModal = ({ isOpen, onClose, order, onOrderUpdate }) => {
                         const showPurchaseOrder = ['order_confirmed', 'truck_loading', 'in_transit', 'out_for_delivery', 'delivered'].includes(status);
                         const showInvoice = isDeliveryStage;
                         const showEwayBill = isDeliveryStage;
-                        const showPaymentRecipt = ['payment_done', 'truck_loading', 'in_transit', 'out_for_delivery', 'delivered'].includes(status);
+                        // const showPaymentRecipt = ['payment_done','order_confirmed', 'truck_loading', 'in_transit', 'out_for_delivery', 'delivered'].includes(status);
                         const docConfig = [
                           showQuote && { type: 'quote', label: 'Quote' },
                           showSalesOrder && { type: 'so', label: 'Sales Order' },
                           showInvoice && { type: 'invoice', label: 'Invoice' },
                           showEwayBill && { type: 'eway', label: 'E-way Bill' },
                           showPurchaseOrder && { type: 'po', label: 'Purchase Order' },
-                          showPaymentRecipt && { type: 'payment', label: 'Payment Receipt' }
+                          showSalesOrder && { type: 'payment', label: 'Payment Receipt' }
                         ].filter(Boolean);
                         return docConfig.map(({ type, label }) => (
                           <Button

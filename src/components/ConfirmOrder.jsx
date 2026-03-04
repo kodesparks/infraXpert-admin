@@ -349,9 +349,9 @@ const finalData = {
         .reduce((acc, item) => {
           return (
             acc +
-            (parseFloat(item.vendorUnitPrice || 0) +
-              parseFloat(item.vendorLoadingCharges || 0)) *
-              (item.qty || 0)
+            (parseFloat(item.vendorUnitPrice || 0) * (item.qty || 0)) +
+              parseFloat(item.vendorLoadingCharges || 0)
+              
           );
         }, 0)
         .toFixed(2)}
